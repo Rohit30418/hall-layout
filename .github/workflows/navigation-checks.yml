@@ -20,5 +20,6 @@ jobs:
           node --check assets/js/app.js
           node --check assets/js/navigation-guide.js
           node --check assets/js/route-avatar.js
+          node --check assets/js/mobile-navigation.js
       - name: Route and smart guide tests
-        run: node --test tests/directions.test.cjs tests/navigation-guide.test.cjs tests/route-avatar.test.cjs
+        run: node --test tests/directions.test.cjs tests/navigation-guide.test.cjs tests/route-avatar.test.cjs tests/mobile-navigation.test.cjs
