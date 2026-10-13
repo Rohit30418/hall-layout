@@ -530,3 +530,56 @@ body.nav-drawer-visible #nav-fab { display:none !important; }
   overflow:hidden; clip:rect(0,0,0,0);
   white-space:nowrap; border:0;
 }
+
+
+/* Compact simulated walking avatar controls — optional and user initiated. */
+#nav-drawer .walk-preview {
+  flex:0 0 auto;
+  padding:11px 16px 10px;
+  border-top:1px solid #edf1f7;
+  border-bottom:1px solid #edf1f7;
+  background:linear-gradient(125deg,#f8fbff,#fff);
+}
+#nav-drawer .walk-preview-row { display:flex; align-items:center; gap:8px; min-width:0; }
+#nav-drawer .walk-preview-play,
+#nav-drawer .walk-preview-restart {
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:36px;border-radius:10px;cursor:pointer;
+  border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;
+  font:800 11px/1.1 Inter,Arial,sans-serif;
+}
+#nav-drawer .walk-preview-play { padding:9px 13px; flex-shrink:0; }
+#nav-drawer .walk-preview-play[aria-pressed="true"] {
+  background:#1d4ed8;border-color:#1d4ed8;color:#fff;
+}
+#nav-drawer .walk-preview-restart {width:36px;flex-shrink:0;background:#fff;}
+#nav-drawer .walk-preview-play:hover:not(:disabled),
+#nav-drawer .walk-preview-restart:hover:not(:disabled) {border-color:#60a5fa;}
+#nav-drawer .walk-preview-play:disabled,
+#nav-drawer .walk-preview-restart:disabled {opacity:.42;cursor:not-allowed;}
+#nav-drawer .walk-preview-play:focus-visible,
+#nav-drawer .walk-preview-restart:focus-visible {outline:3px solid #93c5fd;outline-offset:2px;}
+#nav-drawer .walk-preview-status {
+  min-width:0;flex:1;text-align:right;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;color:#62748f;font:750 10px/1.2 Inter,Arial,sans-serif;
+}
+#nav-drawer .walk-preview-track {
+  margin:10px 1px 6px;height:4px;width:calc(100% - 2px);
+  border-radius:999px;background:#e1eaf8;overflow:hidden;
+}
+#nav-drawer .walk-preview-fill {
+  display:block;height:100%;width:0;
+  background:linear-gradient(90deg,#2563eb,#06b6d4);
+  border-radius:inherit;transition:width .12s linear;
+}
+#nav-drawer .walk-preview-hint {
+  color:#8190a6;font:600 10px/1.35 Inter,Arial,sans-serif;
+}
+@media (max-width:768px) {
+  #nav-drawer .walk-preview {padding:9px 12px;}
+  #nav-drawer .walk-preview-play {padding:8px 10px;}
+  #nav-drawer .walk-preview-status {font-size:9px;}
+}
+@media (prefers-reduced-motion:reduce) {
+  #nav-drawer .walk-preview-fill {transition:none;}
+}
