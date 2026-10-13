@@ -1,0 +1,273 @@
+/* Hall Layout — Navigation UI v2
+   Scoped polish: does not change the user's stall/map appearance. */
+#nav-drawer {
+  --nav-text: #10213d;
+  --nav-muted: #60718c;
+  background: #fff;
+  color: var(--nav-text);
+  border: 1px solid #dfe7f3;
+}
+@media (min-width: 769px) {
+  #nav-drawer,
+  #nav-drawer.open {
+    width: 366px;
+    max-width: min(366px, calc(100vw - 30px));
+    top: calc(var(--header-h) + 128px);
+    bottom: auto;
+    max-height: calc(100vh - var(--header-h) - 148px);
+    border-radius: 20px;
+    box-shadow: 0 18px 44px rgba(17, 38, 72, .14);
+  }
+}
+#nav-drawer .drawer-header {
+  background: #fff;
+  border-bottom: 0;
+}
+#nav-drawer .drawer-header-top {
+  padding: 15px 16px 12px;
+  gap: 8px;
+}
+#nav-drawer .drawer-title {
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: -.35px;
+  color: #15294c;
+}
+#nav-drawer .drawer-clear {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #f4f6fb;
+  color: #64748b;
+  font: 700 11px/1.2 Inter, Arial, sans-serif;
+  cursor: pointer;
+}
+#nav-drawer .drawer-clear:hover { color: #dc2626; background: #fef2f2; }
+#nav-drawer .drawer-clear:focus-visible,
+#nav-drawer .nav-expand-steps:focus-visible {
+  outline: 3px solid #93c5fd; outline-offset: 2px;
+}
+#nav-drawer .drawer-close {
+  width: 29px; height: 29px;
+  border-color: #e4eaf4;
+  background: #fff;
+}
+#nav-drawer .drawer-route-row {
+  padding: 0 16px 10px; gap: 8px;
+}
+#nav-drawer .drawer-chip {
+  font-size: 11px; padding: 5px 10px;
+  border-radius: 9px;
+  max-width: 110px;
+}
+#nav-drawer .drawer-summary {
+  padding: 0 16px 12px;
+  font-size: 11px;
+  color: #64748b;
+}
+#nav-drawer .drawer-pill {
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-weight: 800;
+  background: #19429e;
+  color: #fff;
+}
+#nav-drawer .drawer-progress {
+  background: #e6efff;
+  height: 4px;
+  border-radius: 0;
+}
+#nav-drawer .drawer-progress-fill {
+  background: linear-gradient(90deg,#2563eb,#06b6d4);
+  border-radius: 0;
+}
+/* Focus on ONE next action rather than a wall of technical instructions. */
+#nav-drawer .nav-now {
+  margin: 14px 14px 9px;
+  border: 1px solid #173e84;
+  border-radius: 16px;
+  padding: 15px 16px 16px;
+  background: linear-gradient(140deg,#153363 0%,#1e4b9b 60%,#2457b1 100%);
+  box-shadow: 0 9px 19px rgba(23, 63, 136, .14);
+  flex-shrink: 0;
+  color: #fff;
+}
+#nav-drawer .nav-now-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#nav-drawer .nav-now-kicker {
+  font: 850 10px/1.2 Inter,Arial,sans-serif;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: #c7ddff;
+}
+#nav-drawer .nav-now-counter {
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.21);
+  background: rgba(255,255,255,.10);
+  border-radius: 8px;
+  color: #e4efff;
+  font: 750 10px/1 Inter,Arial,sans-serif;
+  white-space: nowrap;
+}
+#nav-drawer .nav-now-row { display:flex; align-items:flex-start; gap:12px; }
+#nav-drawer .nav-now-icon {
+  flex: 0 0 40px;
+  width: 40px; height: 40px;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 12px;
+  display: inline-grid; place-items:center;
+  font-size: 19px; color: #fff;
+}
+#nav-drawer .nav-now-end { color:#bbf7d0; }
+#nav-drawer .nav-now-copy { display:flex; flex-direction:column; gap:7px; min-width:0; flex:1; }
+#nav-drawer #navNowTitle {
+  font: 830 18px/1.35 Inter, Arial, sans-serif;
+  letter-spacing: -.5px;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+#nav-drawer #navNowDetail {
+  font: 600 11.5px/1.45 Inter, Arial, sans-serif;
+  color: #d2e4ff;
+  overflow-wrap: anywhere;
+}
+#nav-drawer .nav-up-next {
+  margin: 0 15px 12px;
+  background:#f1f6ff;
+  color:#3a567b;
+  border:1px solid #e3edfc;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font: 650 11px/1.45 Inter,Arial,sans-serif;
+  overflow-wrap:anywhere;
+}
+#nav-drawer .smart-guide-tools {
+  background:#fff;
+  border-top:1px solid #eef2f8;
+  border-bottom:0;
+  padding: 10px 14px 4px;
+  gap:7px;
+}
+#nav-drawer .smart-guide-caption strong {
+  color:#27416a;
+  font-size:11px;
+}
+#nav-drawer .smart-guide-caption span {
+  font-size:10px;
+}
+#nav-drawer .smart-guide-action {
+  border-radius:9px;
+  box-shadow:none;
+  min-height:33px;
+}
+#nav-drawer .smart-guide-status {
+  background:#fff;
+  padding: 0 15px 10px;
+  border:0;
+  min-height:0;
+  font-size:10px;
+  color:#8290a4;
+}
+#nav-drawer .nav-expand-steps {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:calc(100% - 28px);
+  margin: 0 14px 8px;
+  padding:10px 12px;
+  border:1px solid #e3eaf4;
+  background:#fafcff;
+  border-radius:10px;
+  color:#244b85;
+  font:750 11.5px/1.2 Inter,Arial,sans-serif;
+  cursor:pointer;
+}
+#nav-drawer .nav-expand-steps:hover { border-color:#93c5fd; background:#eff6ff; }
+#nav-drawer .drawer-steps[hidden] { display:none !important; }
+#nav-drawer .drawer-steps {
+  flex:1 1 auto;
+  min-height:0;
+  max-height:min(35vh,265px);
+  padding:3px 14px 9px;
+  border-top:1px solid #f0f3f9;
+}
+#nav-drawer .nav-step {
+  border:1px solid transparent;
+  background:#fff;
+  border-radius:12px;
+  padding:9px 7px;
+  gap:10px;
+  margin:4px 0;
+}
+#nav-drawer .nav-step::before { display:none; }
+#nav-drawer .nav-step.step-active {
+  background:#f0f6ff;
+  border-color:#c9ddff;
+  box-shadow:none;
+}
+#nav-drawer .step-main {
+  font-size:12px;
+  line-height:1.4;
+  font-weight:750;
+}
+#nav-drawer .step-sub {
+  font-size:10px;
+  font-weight:550;
+  color:#60718c;
+}
+#nav-drawer .step-icon {
+  width:30px; height:30px;
+  box-shadow:none;
+  font-size:12px;
+}
+#nav-drawer .step-hint { display:none; }
+#nav-drawer .drawer-step-controls {
+  background:#fff;
+  border-top:1px solid #eaf0f9;
+  border-radius:0 0 18px 18px;
+  padding:11px 14px 14px;
+  gap:10px;
+}
+#nav-drawer .nav-step-btn {
+  border-radius:10px;
+  padding:11px 9px;
+  min-height:40px;
+  font-size:12px;
+}
+#nav-drawer .nav-step-next:not(:disabled) {
+  color:white;
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+}
+#nav-drawer .nav-step-next:not(:disabled):hover { background:#1e40af; }
+#nav-drawer .nav-step-counter { font-weight:850; color:#25466f; }
+/* Avoid duplicate floating Directions/Clear controls while the drawer is open. */
+body.nav-drawer-visible #nav-fab { display:none !important; }
+@media (max-width:768px) {
+  #nav-drawer, #nav-drawer.open {
+    top:auto;
+    width:100%;
+    max-width:100%;
+    height:auto;
+    max-height:min(79vh,720px);
+    border-radius:20px 20px 0 0;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  #nav-drawer:not(.open) { bottom:-100%; }
+  #nav-drawer.open { bottom:0; }
+  #nav-drawer .nav-now { margin:10px 12px 8px; padding:12px 13px; }
+  #nav-drawer #navNowTitle { font-size:16px; }
+  #nav-drawer .nav-up-next { margin:0 12px 9px; }
+  #nav-drawer .drawer-steps { max-height:23vh; }
+  #nav-drawer .drawer-step-controls { padding:8px 12px 12px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  #nav-drawer .nav-step, #nav-drawer .nav-step-btn { transition:none; }
+}
