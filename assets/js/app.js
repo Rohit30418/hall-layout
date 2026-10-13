@@ -75,6 +75,7 @@ function swapRoute() {
 ══════════════════════════════════════════ */
 function openNavDrawer() { document.getElementById('nav-drawer').classList.add('open'); document.body.classList.add('nav-drawer-visible'); }
 function closeNavDrawer() {
+  pauseWalkPreview();
   stopNavVoice();
   voiceGuidanceOn = false;
   updateNavVoiceButton();
@@ -1030,6 +1031,197 @@ function drawRouteSummaryBubble2d(anchorWorld) {
   ctx.restore();
 }
 
+/* Animated visitor preview
+   A visual simulation of the actual routed polyline, NOT indoor positioning.
+   The walkthrough advances only after a user presses Preview Walk. */
+let walkPreviewPath = null;
+let walkPreviewDistance = 0;
+let walkPreviewPlaying = false;
+let walkPreviewLastTick = null;
+let walkPreviewLastUi = 0;
+let walkPreviewAvatar3 = null;
+let walkPreviewLimbs3 = null;
+let walkPreviewLastStatus = '';
+
+function syncWalkPreviewUi(force = false) {
+  const play = document.getElementById('btnWalkPreview');
+  const restart = document.getElementById('btnWalkRestart');
+  const status = document.getElementById('walkPreviewStatus');
+  const progress = document.getElementById('walkPreviewProgress');
+  const fill = document.getElementById('walkPreviewFill');
+  if (!play) return;
+  const available = !!walkPreviewPath;
+  const pct = available ? Math.min(100, Math.round(walkPreviewDistance / walkPreviewPath.total * 100)) : 0;
+  const completed = available && walkPreviewDistance >= walkPreviewPath.total - 0.00001;
+  play.disabled = !available;
+  play.setAttribute('aria-pressed', String(walkPreviewPlaying));
+  play.innerHTML = walkPreviewPlaying
+    ? '<i class="fa fa-pause" aria-hidden="true"></i> Pause walk'
+    : completed ? '<i class="fa fa-rotate-right" aria-hidden="true"></i> Replay walk'
+      : '<i class="fa fa-person-walking" aria-hidden="true"></i> Preview walk';
+  if (restart) restart.disabled = !available || walkPreviewDistance <= 0;
+  if (fill) fill.style.width = pct + '%';
+  if (progress) progress.setAttribute('aria-valuenow', String(pct));
+  const label = !available ? 'Route simulation' :
+    completed ? 'Preview complete' : walkPreviewPlaying ? 'Walking · ' + (Math.floor(pct / 10) * 10) + '%' :
+      walkPreviewDistance > 0 ? 'Paused · ' + pct + '%' : 'Route simulation';
+  if (status && (force || label !== walkPreviewLastStatus)) status.textContent = label;
+  walkPreviewLastStatus = label;
+}
+function removeWalkPreviewAvatar3() {
+  if (!walkPreviewAvatar3) return;
+  if (scene) scene.remove(walkPreviewAvatar3);
+  disposeRouteObject3(walkPreviewAvatar3);
+  walkPreviewAvatar3 = null;
+  walkPreviewLimbs3 = null;
+}
+function clearWalkPreview() {
+  walkPreviewPlaying = false;
+  walkPreviewLastTick = null;
+  walkPreviewPath = null;
+  walkPreviewDistance = 0;
+  walkPreviewLastUi = 0;
+  removeWalkPreviewAvatar3();
+  syncWalkPreviewUi(true);
+}
+function pauseWalkPreview() {
+  if (!walkPreviewPlaying) return;
+  walkPreviewPlaying = false;
+  walkPreviewLastTick = null;
+  syncWalkPreviewUi(true);
+}
+function createWalkPreviewAvatar3() {
+  removeWalkPreviewAvatar3();
+  if (typeof THREE === 'undefined' || !scene || !walkPreviewPath || currentView !== '3d') return;
+  const bodyMat = new THREE.MeshBasicMaterial({ color: 0x2563eb });
+  const faceMat = new THREE.MeshBasicMaterial({ color: 0xffd39b });
+  const darkMat = new THREE.MeshBasicMaterial({ color: 0x172554 });
+  const accentMat = new THREE.MeshBasicMaterial({ color: 0x93c5fd });
+  const root = new THREE.Group();
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(11, 14, 7), bodyMat);
+  torso.position.y = 17; root.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(5.6, 12, 8), faceMat);
+  head.position.y = 29; root.add(head);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(5.8, 12, 8), darkMat);
+  hair.scale.set(1, 0.35, 1); hair.position.set(0, 32.6, -.4); root.add(hair);
+  const badge = new THREE.Mesh(new THREE.BoxGeometry(5, 2.6, 0.8), accentMat);
+  badge.position.set(0,19.4,3.9);root.add(badge);
+  function limb(x,y,len,mat) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x,y,0);
+    const part = new THREE.Mesh(new THREE.BoxGeometry(3.7,len,3.8), mat);
+    part.position.y = -len/2; pivot.add(part); root.add(pivot);
+    return pivot;
+  }
+  const leftArm = limb(-7,23,11,bodyMat), rightArm = limb(7,23,11,bodyMat);
+  const leftLeg = limb(-3.2,11,11,darkMat), rightLeg = limb(3.2,11,11,darkMat);
+  const ground = new THREE.Mesh(new THREE.CylinderGeometry(13,13,0.8,20),
+    new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:0.30,depthWrite:false}));
+  ground.position.y = 1;root.add(ground);
+  walkPreviewAvatar3 = root;
+  walkPreviewLimbs3 = {leftArm,rightArm,leftLeg,rightLeg};
+  scene.add(root);
+}
+function prepareWalkPreview(points) {
+  clearWalkPreview();
+  if (!window.HallWalkPreview) return;
+  walkPreviewPath = window.HallWalkPreview.buildPath(points);
+  if (currentView === '3d' && walkPreviewPath) createWalkPreviewAvatar3();
+  syncWalkPreviewUi(true);
+}
+function toggleWalkPreview() {
+  if (!walkPreviewPath) return;
+  if (walkPreviewPlaying) return pauseWalkPreview();
+  if (walkPreviewDistance >= walkPreviewPath.total - 0.00001) walkPreviewDistance = 0;
+  walkPreviewPlaying = true;
+  walkPreviewLastTick = null;
+  syncWalkPreviewUi(true);
+}
+function restartWalkPreview() {
+  if (!walkPreviewPath) return;
+  walkPreviewDistance = 0;
+  walkPreviewPlaying = true;
+  walkPreviewLastTick = null;
+  currentNavStepIdx = 0;
+  renderDrawerSteps();
+  syncWalkPreviewUi(true);
+}
+function advanceWalkPreview(now) {
+  if (!walkPreviewPlaying || !walkPreviewPath) return;
+  if (!Number.isFinite(now)) return;
+  if (walkPreviewLastTick === null) { walkPreviewLastTick = now; return; }
+  const deltaMs = Math.max(0,Math.min(64,now-walkPreviewLastTick));
+  walkPreviewLastTick = now;
+  const duration = window.HallWalkPreview.durationFor(walkPreviewPath);
+  if (duration <= 0) return;
+  walkPreviewDistance = Math.min(walkPreviewPath.total,walkPreviewDistance +
+    deltaMs * walkPreviewPath.total / (duration * 1000));
+  const next = window.HallWalkPreview.stepAtDistance(walkPreviewPath,navStepsData,walkPreviewDistance);
+  if (next !== currentNavStepIdx && navStepsData.length) {
+    currentNavStepIdx = next;
+    renderDrawerSteps();
+    if (voiceGuidanceOn) readSelectedNavStep();
+  }
+  if (walkPreviewDistance >= walkPreviewPath.total - 0.00001) {
+    walkPreviewPlaying = false;
+    walkPreviewLastTick = null;
+    syncWalkPreviewUi(true);
+  } else if (now-walkPreviewLastUi > 120) {
+    walkPreviewLastUi = now;
+    syncWalkPreviewUi();
+  }
+}
+// Draw a tiny, direction-aware walker at a constant on-screen size.
+// Limbs swing only while the user is actually playing the preview.
+function drawWalkPreviewAvatar2d() {
+  if (!walkPreviewPath || currentView !== '2d') return;
+  const pos = window.HallWalkPreview.sample(walkPreviewPath,walkPreviewDistance);
+  if (!pos) return;
+  const p = w2s(pos.x,pos.y);
+  if (p.x < -60 || p.y < -60 || p.x > canvas2d.width+60 || p.y > canvas2d.height+60) return;
+  const stride = walkPreviewPlaying ? Math.sin(walkPreviewDistance * 0.25) * 5 : 0;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.fillStyle = 'rgba(37,99,235,.13)';
+  ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle = '#ffffff';ctx.lineWidth = 3;
+  ctx.beginPath();ctx.arc(0,0,21,0,Math.PI*2);ctx.stroke();
+  ctx.rotate(pos.heading+Math.PI/2);
+  // A small arrow points exactly along the current walking direction.
+  ctx.fillStyle = '#1d4ed8';
+  ctx.beginPath();ctx.moveTo(0,-26);ctx.lineTo(-5,-19);ctx.lineTo(5,-19);ctx.closePath();ctx.fill();
+  ctx.strokeStyle = '#1e3a8a';ctx.lineWidth = 4;ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4,5);ctx.lineTo(-5-stride*0.4,14+stride*0.6);
+  ctx.moveTo(4,5);ctx.lineTo(5+stride*0.4,14-stride*0.6);
+  ctx.stroke();
+  ctx.strokeStyle='#60a5fa';ctx.lineWidth=3.4;
+  ctx.beginPath();
+  ctx.moveTo(-6,-7);ctx.lineTo(-10,1-stride);
+  ctx.moveTo(6,-7);ctx.lineTo(10,1+stride);
+  ctx.stroke();
+  ctx.fillStyle='#1d4ed8';
+  drawRoundedRect(ctx,-6,-10,12,16,5);ctx.fill();
+  ctx.fillStyle='#ffd39b';ctx.beginPath();ctx.arc(0,-13,5.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#172554';
+  ctx.beginPath();ctx.arc(0,-15.3,4.5,Math.PI,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function updateWalkPreviewAvatar3(now) {
+  if (!walkPreviewAvatar3 || !walkPreviewPath) return;
+  const pos=window.HallWalkPreview.sample(walkPreviewPath,walkPreviewDistance);
+  if (!pos) return;
+  walkPreviewAvatar3.position.set(pos.x,0,pos.y);
+  walkPreviewAvatar3.rotation.y=Math.PI/2-pos.heading;
+  if (walkPreviewLimbs3) {
+    const swing=walkPreviewPlaying ? Math.sin(walkPreviewDistance*0.24)*0.52 : 0;
+    walkPreviewLimbs3.leftArm.rotation.x=-swing;
+    walkPreviewLimbs3.rightArm.rotation.x=swing;
+    walkPreviewLimbs3.leftLeg.rotation.x=swing;
+    walkPreviewLimbs3.rightLeg.rotation.x=-swing;
+  }
+}
+
 function drawRoute2d() {
   if (!routePath2d || routePath2d.length < 2) return;
   const pts = routePath2d.map(p => w2s(p.x, p.y));
@@ -1172,6 +1364,7 @@ function drawRoute2d() {
   if (routeStart2d) { const sp = w2s(routeStart2d.x, routeStart2d.y); mkr(sp, '#059669', 'START', ''); }
   if (routeEnd2d)   { const ep = w2s(routeEnd2d.x, routeEnd2d.y);     mkr(ep, '#1e3a8a', 'END', ''); }
   drawRouteSummaryBubble2d(routePath2d[Math.max(0, routePath2d.length - 2)] || routeEnd2d);
+  drawWalkPreviewAvatar2d();
   ctx.restore();
 }
 
@@ -1244,6 +1437,7 @@ function draw2d() {
 
   const loop = () => {
     if (currentView !== '2d') { raf2dId = null; return; }
+    advanceWalkPreview(performance.now());
     render2dFrame();
     raf2dId = requestAnimationFrame(loop);
   };
@@ -3111,6 +3305,7 @@ function calculateRoute2d(fv, tv) {
   updateRouteMetrics(pts);
   const steps = buildDirections(pts, fromLabel, toLabel, { fromD, toD });
   renderNavPanel(steps, fromLabel, toLabel);
+  prepareWalkPreview(pts);
   closeSidebar();
 }
 
@@ -3166,6 +3361,7 @@ function calculateRoute3d(fv, tv) {
   updateRouteMetrics(worldPts);
   const steps = buildDirections(worldPts, sn3, en3, { fromD, toD });
   renderNavPanel(steps, sn3, en3);
+  prepareWalkPreview(worldPts);
   closeSidebar();
 }
 
@@ -3230,6 +3426,8 @@ function pointOnRoute3(distanceOnPath) {
 }
 
 function updateRouteAnimation3(now) {
+  if (currentView === '3d') advanceWalkPreview(now);
+  updateWalkPreviewAvatar3(now);
   if (!pathAnimDots3.length || routeTotalLen3 <= 0) return;
   pathAnimDots3.forEach(dot => {
     const p = pointOnRoute3((now * .045 + dot.userData.routeOffset) % routeTotalLen3);
@@ -3250,6 +3448,7 @@ function disposeRouteObject3(obj) {
 }
 
 function clearRoute3d(resetHighlights = true) {
+  clearWalkPreview();
   if (pathMesh3 && scene) {
     scene.remove(pathMesh3);
     disposeRouteObject3(pathMesh3);
