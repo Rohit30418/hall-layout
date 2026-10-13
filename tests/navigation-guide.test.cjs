@@ -122,12 +122,12 @@ test('directions panel keeps a single optional voice button and clickable instru
     assert.ok(!html.includes('id="' + id + '"'), 'removed extra control: ' + id);
   }
   assert.ok(html.includes('id="drawerSteps" aria-label="Walking instructions"'));
-  assert.ok(html.includes('navigation-polish.css?v=minimal-voice-v6'));
+  assert.ok(html.includes('navigation-polish.css?v=walk-preview-v7'));
   assert.ok(html.includes('aria-pressed="false"'));
   assert.ok(html.includes('onclick="toggleVoiceGuidance()"'));
   assert.ok(html.includes('class="drawer-voice-btn"'));
   assert.ok(html.includes('role="status" aria-live="polite"'));
-  assert.ok(html.includes('app.js?v=minimal-voice-v6'));
+  assert.ok(html.includes('app.js?v=walk-preview-v7'));
   assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
   assert.ok(app.includes('function setNavStep(index)'));
