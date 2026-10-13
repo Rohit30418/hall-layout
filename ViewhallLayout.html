@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="assets/css/base.css?v=situm-style-nav-v12" />
 <link rel="stylesheet" href="assets/css/ui-wow.css?v=situm-style-nav-v12" />
 <link rel="stylesheet" href="assets/css/navigation-guide.css?v=smart-guide-v1" />
-<link rel="stylesheet" href="assets/css/navigation-polish.css?v=nav-ui-v3" />
+<link rel="stylesheet" href="assets/css/navigation-polish.css?v=minimal-v5" />
 </head>
 <body>
 <datalist id="stallList"></datalist>
@@ -172,71 +172,25 @@
   </div>
 </div>
 
-<!-- DIRECTIONS DRAWER: compact overview first; full timeline on demand -->
-<div id="nav-drawer">
+<!-- Minimal walking directions: directly visible, clickable route steps. -->
+<div id="nav-drawer" class="steps-expanded">
   <div class="drawer-header">
     <div class="drawer-header-top">
-      <div class="drawer-title">
-        <i class="fa fa-diamond-turn-right" style="color:#2563eb;margin-right:7px" aria-hidden="true"></i>
-        Walking directions
-      </div>
-      <button type="button" class="drawer-clear" onclick="clearRoute()" title="Clear walking route">
-        <i class="fa fa-xmark" aria-hidden="true"></i> Clear
-      </button>
-      <button type="button" class="drawer-close" onclick="closeNavDrawer()" aria-label="Close directions"><i class="fa fa-xmark" aria-hidden="true"></i></button>
+      <div class="drawer-title"><i class="fa fa-route" aria-hidden="true"></i> Walking directions</div>
+      <button class="drawer-clear" type="button" onclick="clearRoute()" title="Clear this route">Clear</button>
+      <button class="drawer-close" type="button" onclick="closeNavDrawer()" aria-label="Close directions"><i class="fa fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="drawer-route-row">
       <div class="drawer-chip drawer-chip-start"><i class="fa fa-circle-dot" aria-hidden="true"></i><span id="navDrawerFrom"></span></div>
-      <div class="drawer-arrow"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
+      <i class="fa fa-arrow-right drawer-arrow" aria-hidden="true"></i>
       <div class="drawer-chip drawer-chip-end"><i class="fa fa-flag-checkered" aria-hidden="true"></i><span id="navDrawerTo"></span></div>
     </div>
     <div class="drawer-summary">
       <span class="drawer-pill" id="drawerStepCount"></span>
       <span id="drawerSummaryText"></span>
     </div>
-    <div class="drawer-progress" aria-hidden="true"><div class="drawer-progress-fill" id="drawerProgressFill" style="width:0%"></div></div>
   </div>
-
-  <section class="nav-now" aria-label="Current walking instruction">
-    <div class="nav-now-topline">
-      <span class="nav-now-kicker" id="navNowLabel">START HERE</span>
-      <span class="nav-now-counter" id="navNowCounter">Step 1</span>
-    </div>
-    <div class="nav-now-row">
-      <span id="navNowIcon" class="nav-now-icon nav-now-start"><i class="fa fa-circle-dot" aria-hidden="true"></i></span>
-      <div class="nav-now-copy">
-        <strong id="navNowTitle">Follow the blue route</strong>
-        <span id="navNowDetail">Select your destination to get started</span>
-      </div>
-    </div>
-  </section>
-  <div class="nav-up-next" id="navUpNext" aria-live="polite">Your next step will appear here</div>
-
-  <div class="smart-guide-tools" role="group" aria-label="Spoken navigation">
-    <div class="smart-guide-caption">
-      <strong><i class="fa fa-volume-high" aria-hidden="true"></i> Voice guide</strong>
-      <span>Optional spoken instructions</span>
-    </div>
-    <button type="button" class="smart-guide-action" id="btnVoiceGuide" onclick="toggleVoiceGuidance()" aria-pressed="false" title="Read steps aloud">
-      <i class="fa fa-volume-xmark" aria-hidden="true"></i> Listen
-    </button>
-    <button type="button" class="smart-guide-action" id="btnRepeatStep" onclick="readCurrentStep()" title="Replay current instruction" aria-label="Replay current instruction">
-      <i class="fa fa-rotate-right" aria-hidden="true"></i> Replay
-    </button>
-  </div>
-  <div class="smart-guide-status" id="voiceGuideStatus" aria-live="polite">Tap Listen for spoken directions.</div>
-
-  <button type="button" class="nav-expand-steps" id="btnToggleRouteSteps"
-     onclick="toggleRouteSteps()" aria-expanded="true" aria-controls="drawerSteps">
-    <i class="fa fa-compress" aria-hidden="true"></i> Focus on one step
-  </button>
-  <div class="drawer-steps" id="drawerSteps"></div>
-
-  <div class="drawer-step-controls">
-    <button class="nav-step-btn" id="btnPrevStep" type="button" onclick="navStepPrev()" disabled><i class="fa fa-arrow-left" aria-hidden="true"></i> Previous</button>
-    <div class="nav-step-counter" id="navStepCounter">1 / 1</div>
-    <button class="nav-step-btn nav-step-next" id="btnNextStep" type="button" onclick="navStepNext()">Next <i class="fa fa-arrow-right" aria-hidden="true"></i></button>
-  </div>
+  <div class="drawer-steps" id="drawerSteps" aria-label="Walking instructions"></div>
 </div>
 
 <!-- Loader -->
@@ -258,7 +212,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 <script src="assets/js/navigation-guide.js?v=nav-ui-v3"></script>
-<script src="assets/js/app.js?v=nav-ui-v4"></script>
-<script src="assets/js/ui-wow.js?v=situm-style-nav-v12"></script>
+<script src="assets/js/app.js?v=minimal-v5"></script>
+<script src="assets/js/ui-wow.js?v=minimal-v5"></script>
 </body>
 </html>
