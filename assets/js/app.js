@@ -1232,6 +1232,8 @@ function drawWalkPreviewAvatar2d() {
   ctx.stroke();
   ctx.restore();
 
+  // Keep the miniature figure legible without obscuring nearby booth labels.
+  ctx.scale(0.82, 0.82);
   // Draw the mascot like a tiny 3/4-view person, not a stick icon.
   ctx.translate(0, -lift);
   ctx.rotate(lean);
