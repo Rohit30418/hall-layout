@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="assets/css/ui-wow.css?v=situm-style-nav-v12" />
 <link rel="stylesheet" href="assets/css/navigation-guide.css?v=smart-guide-v1" />
 <link rel="stylesheet" href="assets/css/navigation-polish.css?v=walk-preview-v7" />
+<link rel="stylesheet" href="assets/css/mobile-navigation.css?v=mobile-sheet-v1" />
 </head>
 <body>
 <datalist id="stallList"></datalist>
@@ -174,6 +175,12 @@
 
 <!-- Minimal walking directions: directly visible, clickable route steps. -->
 <div id="nav-drawer" class="steps-expanded">
+  <button type="button" id="btnMobileStepsToggle" class="mobile-nav-toggle"
+    aria-controls="drawerSteps" aria-expanded="false" aria-label="Expand or collapse walking directions">
+    <span class="mobile-nav-grip" aria-hidden="true"></span>
+    <span class="mobile-nav-toggle-text">Show all directions</span>
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
   <div class="drawer-header">
     <div class="drawer-header-top">
       <div class="drawer-title"><i class="fa fa-route" aria-hidden="true"></i> Walking directions</div>
@@ -211,6 +218,13 @@
     </div>
     <div class="walk-preview-hint">Animated guide · not live location tracking</div>
   </div>
+  <div class="mobile-nav-current" id="mobileNavCurrent" aria-live="polite">
+    <div class="mobile-nav-current-info">
+      <span class="mobile-nav-current-label">NEXT MOVE</span>
+      <strong id="mobileNavCurrentText">Follow the highlighted route</strong>
+    </div>
+    <span id="mobileNavStepCounter" class="mobile-nav-current-count"></span>
+  </div>
   <div class="drawer-steps" id="drawerSteps" aria-label="Walking instructions"></div>
 </div>
 
@@ -236,5 +250,6 @@
 <script src="assets/js/route-avatar.js?v=walk-preview-v7"></script>
 <script src="assets/js/app.js?v=avatar-mascot-v8"></script>
 <script src="assets/js/ui-wow.js?v=minimal-v5"></script>
+<script src="assets/js/mobile-navigation.js?v=mobile-sheet-v1"></script>
 </body>
 </html>
