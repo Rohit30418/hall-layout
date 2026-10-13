@@ -2429,35 +2429,20 @@ function stallEntryPoint(d, grid, cols, rows) {
   }
   if (best) return best.point;
 
-  // If backend says an outside edge is open, do not draw the route in the outer blank area.
-  // Try the nearest usable inside edge so the visual line stays with the stall/aisle.
+  // An explicitly declared entrance is authoritative. Never silently route visitors to
+  // another (possibly closed) wall when the declared entry is not reachable.
+  if (declaredSides.length) {
+    console.warn('No accessible declared entrance for stall:', d.StallNo, declaredSides);
+    return null;
+  }
+
+  // Legacy stalls without entrance metadata: allow a clearly marked best-effort
+  // aisle-side fallback. This is NOT used for stalls with declared sides.
   for (const side of orderedSides) {
-    if (declaredSides.includes(side)) continue;
     const entry = nearestWalkableOnSide(d, side, grid, cols, rows);
     if (entry && (!best || entry.dist < best.dist)) best = entry;
   }
-  if (best) {
-    if (declaredSides.length) console.warn('Declared open side was outside/blocked; used inside aisle side for stall:', d.StallNo, declaredSides);
-    return best.point;
-  }
-
-  // Last fallback: try every side (no hull check) to ensure the marker lands on a walkable
-  // aisle cell rather than inside the blocked stall interior.
-  const allSides = ['bottom', 'right', 'top', 'left'];
-  for (const side of allSides) {
-    const centerAnchor = sideAnchorPoint(d, side, 0.5, ROUTE_ENTRY_OFFSET + CELL * 2);
-    const cell = nearestWalkable(centerAnchor.x, centerAnchor.y, grid, cols, rows, null, 20);
-    if (cell) {
-      const wp = cellToWorld(cell.c, cell.r);
-      // Accept only if it is outside the stall bounds (aisle side, not trapped inside)
-      const inStall = pointInStallShapeXY(wp.x, wp.y, d, 1);
-      if (!inStall) return wp;
-    }
-  }
-  // Absolute last resort: nearest walkable from center, any direction
-  const c = routeCenter(d);
-  const cell = nearestWalkable(c.x, c.y, grid, cols, rows, null, 32);
-  return cell ? cellToWorld(cell.c, cell.r) : null;
+  return best ? best.point : null;
 }
 
 function nearestWalkable(wx, wy, grid, cols, rows, predicate = null, maxRadiusCells = null) {
@@ -2667,39 +2652,41 @@ function nearestStallLabel(wx, wy, excludeNos = []) {
 }
 
 function compressDirectionPoints(points) {
-  if (!points || points.length <= 2) return points || [];
-  const MIN_LEG = 34;
-  const out = [points[0]];
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = out[out.length - 1];
-    const curr = points[i];
-    const next = points[i + 1];
-    if (segLen(prev, curr) < MIN_LEG) continue;
-    const h0 = headingDeg(prev, curr);
-    const h1 = headingDeg(curr, next);
-    if (Math.abs(signedTurn(h0, h1)) < 28) continue;
-    out.push(curr);
+  // Route waypoints have already been reduced to grid turns. Never discard a
+  // corner based on leg length: a short leg can represent a required turn.
+  if (!points || points.length < 2) return points || [];
+  const clean = normalizeRoutePoints(points);
+  if (clean.length < 3) return clean;
+  const out = [clean[0]];
+  for (let i = 1; i < clean.length - 1; i++) {
+    const a = out[out.length - 1], b = clean[i], c = clean[i + 1];
+    const d0 = { x: b.x - a.x, y: b.y - a.y };
+    const d1 = { x: c.x - b.x, y: c.y - b.y };
+    const cross = d0.x * d1.y - d0.y * d1.x;
+    const dot = d0.x * d1.x + d0.y * d1.y;
+    // Remove only truly collinear forward points; preserve bends and U-turns.
+    if (Math.abs(cross) <= 0.0001 * Math.hypot(d0.x, d0.y) * Math.hypot(d1.x, d1.y) && dot > 0) continue;
+    out.push(b);
   }
-  out.push(points[points.length - 1]);
-  return normalizeRoutePoints(out);
+  out.push(clean[clean.length - 1]);
+  return out;
 }
 
-function humanTurn(angle, prevLen = 999, nextLen = 999) {
+function humanTurn(angle) {
   const abs = Math.abs(angle);
-  if (prevLen < 34 || nextLen < 34) return { type: 'straight', verb: null };
-  if (abs < 50) return { type: 'straight', verb: null };
-  // Avoid "bear left/right" for exhibition map. It confuses users. Use clear left/right only.
-  if (abs < 155) return { type: angle > 0 ? 'right' : 'left', verb: angle > 0 ? 'turn right' : 'turn left' };
-  // U-turn is rare indoors. Show only for a real long reversal.
-  if (prevLen > 120 && nextLen > 120) return { type: 'uturn', verb: 'turn around' };
-  return { type: 'straight', verb: null };
+  if (abs < 25) return { type: 'straight', verb: null };
+  if (abs >= 155) return { type: 'uturn', verb: 'turn around' };
+  return { type: angle > 0 ? 'right' : 'left', verb: angle > 0 ? 'turn right' : 'turn left' };
 }
 
 function destinationSideHint(waypoints, toD) {
   if (!waypoints || waypoints.length < 2 || !toD) return 'straight ahead';
   const lastWalk = waypoints[waypoints.length - 1];
   const prevWalk = waypoints[waypoints.length - 2];
+  // Arrival hints describe the stall relative to the visitor at the aisle
+  // endpoint; do not use the same point for both heading and destination.
   const dest = routeCenter(toD);
+  if (segLen(lastWalk, dest) < 0.01) return 'straight ahead';
   const walkH = headingDeg(prevWalk, lastWalk);
   const destH = headingDeg(lastWalk, dest);
   const turn = signedTurn(walkH, destH);
@@ -2726,7 +2713,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1], b = pts[i];
     const distM = Math.max(1, Math.round(segLen(a, b) * estimateMetersPerUnit()));
-    if (i === pts.length - 1 && distM <= 2) continue;
+    // Do not hide the last segment: even short approaches can involve a turn.
 
     let type = 'straight';
     let icon = 'fa-arrow-up';
@@ -2734,7 +2721,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
     let main = `Go forward ${formatMeters(distM)}`;
 
     if (i > 1) {
-      const turn = humanTurn(signedTurn(headingDeg(pts[i - 2], a), headingDeg(a, b)), segLen(pts[i - 2], a), segLen(a, b));
+      const turn = humanTurn(signedTurn(headingDeg(pts[i - 2], a), headingDeg(a, b)));
       if (turn.type === 'left' || turn.type === 'right') {
         type = turn.type;
         icon = turn.type === 'right' ? 'fa-turn-right' : 'fa-turn-left';
