@@ -127,7 +127,7 @@
       const realTurn = prev.type === 'right' || prev.type === 'left' || prev.type === 'uturn';
       // Fold only very short destination-approach segments into arrival; retain
       // any turn explicitly in both on-screen and spoken instructions.
-      if (shortApproach && ['straight','right','left','uturn'].includes(prev.type)) {
+      if (shortApproach && ['straight','right','left'].includes(prev.type)) {
         const instruction = realTurn
           ? (prev.type === 'uturn' ? 'Turn around' : prev.type === 'right' ? 'Turn right' : 'Turn left') + ' to stall ' + name
           : 'Look for stall ' + name;
