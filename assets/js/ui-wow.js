@@ -124,37 +124,31 @@
   }
 
   function buildMapProductShell() {
-    if (!$('expoSponsorStrip')) {
-      const strip = document.createElement('div');
-      strip.id = 'expoSponsorStrip';
-      strip.className = 'expo-sponsor-strip';
-      strip.setAttribute('aria-label', 'Featured exhibitors');
-      document.body.appendChild(strip);
-    }
-
+    // Keep only two purposeful map controls. Availability statistics remain
+    // in the existing Hall Stats sidebar and do not need duplicate chips.
     if (!$('mapTopChips')) {
       const chips = document.createElement('div');
       chips.id = 'mapTopChips';
       chips.className = 'map-top-chips';
       chips.innerHTML = `
-        <button class="map-chip primary" type="button" data-action="route"><i class="fa fa-route"></i> Directions</button>
-        <button class="map-chip" type="button" data-action="fit"><i class="fa fa-expand"></i> Fit map</button>
-        <button class="map-chip" type="button" data-action="available"><i class="fa fa-check-circle"></i> Available <span class="chip-count" id="chipAvailable">—</span></button>
-        <button class="map-chip" type="button" data-action="booked"><i class="fa fa-lock"></i> Booked <span class="chip-count" id="chipBooked">—</span></button>
-        <button class="map-chip" type="button" data-action="total"><i class="fa fa-vector-square"></i> Total <span class="chip-count" id="chipTotal">—</span></button>`;
+        <button class="map-chip primary" type="button" data-action="route"><i class="fa fa-route" aria-hidden="true"></i> Directions</button>
+        <button class="map-chip" type="button" data-action="fit"><i class="fa fa-expand" aria-hidden="true"></i> Fit map</button>`;
       chips.addEventListener('click', function (e) {
         const btn = e.target.closest('.map-chip');
         if (!btn) return;
-        const action = btn.dataset.action;
-        if (action === 'route') { if (typeof toggleSidebar === 'function') toggleSidebar(); setTimeout(() => $('routeFrom')?.focus(), 140); }
-        if (action === 'fit') { if (typeof resetMapView === 'function') resetMapView(); }
-        if (action === 'available') focusFirstByStatus('available');
-        if (action === 'booked') focusFirstByStatus('booked');
-        if (action === 'total') { if (typeof resetMapView === 'function') resetMapView(); }
+        if (btn.dataset.action === 'fit') {
+          if (typeof resetMapView === 'function') resetMapView();
+        } else if (btn.dataset.action === 'route') {
+          if (typeof hasActiveRoute === 'function' && hasActiveRoute()) {
+            if (typeof openNavDrawer === 'function') openNavDrawer();
+          } else {
+            if (typeof toggleSidebar === 'function') toggleSidebar();
+            setTimeout(() => $('routeFrom')?.focus(), 140);
+          }
+        }
       });
       document.body.appendChild(chips);
     }
-
     if (!$('mapCompassLite')) {
       const compass = document.createElement('div');
       compass.id = 'mapCompassLite';
@@ -164,8 +158,8 @@
   }
 
   function updateMapProductShell() {
-    updateSponsorStrip();
-    updateTopChips();
+    // Map counters continue to be calculated for the existing sidebar.
+    // Removed duplicate toolbar counters and promotional exhibitor carousel.
   }
 
   function updateTopChips() {
