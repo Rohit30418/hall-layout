@@ -109,28 +109,39 @@ test('no route or unavailable guide inputs fail safely', () => {
   assert.equal(enhanceSteps(null,[],1),null);
 });
 
-test('directions list is visible by default and one-step focus is optional', () => {
-  const root=path.join(__dirname,'..');
-  const html=fs.readFileSync(path.join(root,'ViewhallLayout.html'),'utf8');
-  const js=fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
-  const css=fs.readFileSync(path.join(root,'assets/css/navigation-polish.css'),'utf8');
-  assert.match(html,/id="drawerSteps"><\/div>/);
-  assert.match(html,/aria-expanded="true" aria-controls="drawerSteps"/);
-  assert.ok(html.includes('navigation-polish.css?v=nav-ui-v3'));
-  assert.ok(html.includes('navigation-guide.js?v=nav-ui-v3'));
-  assert.ok(html.includes('app.js?v=nav-ui-v4'));
-  assert.ok(html.includes('id="btnVoiceGuide"'));
-  assert.ok(html.includes('id="btnRepeatStep"'));
-  assert.ok(html.indexOf('assets/js/navigation-guide.js')<html.indexOf('assets/js/app.js'));
-  assert.ok(js.includes('let routeStepsExpanded = true;'));
-  assert.ok(js.includes('routeStepsExpanded = true;'));
-  assert.ok(js.includes("drawer.classList.toggle('steps-expanded', routeStepsExpanded)"));
-  assert.ok(js.includes("End of planned route"));
-  assert.ok(css.includes('#nav-drawer.steps-expanded .nav-now'));
+test('directions panel shows only route, clear and clickable instructions', () => {
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root,'ViewhallLayout.html'),'utf8');
+  const app = fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
+  const css = fs.readFileSync(path.join(root,'assets/css/navigation-polish.css'),'utf8');
+  const ui = fs.readFileSync(path.join(root,'assets/js/ui-wow.js'),'utf8');
+  for(const id of ['nav-drawer','drawerSteps','navDrawerFrom','navDrawerTo','drawerStepCount','drawerSummaryText']) {
+    assert.ok(html.includes('id="' + id + '"'), 'important route element: ' + id);
+  }
+  for(const id of ['btnVoiceGuide','btnRepeatStep','btnToggleRouteSteps','btnPrevStep','btnNextStep','navNowTitle','navStepCounter']) {
+    assert.ok(!html.includes('id="' + id + '"'), 'removed extra control: ' + id);
+  }
+  assert.ok(html.includes('id="drawerSteps" aria-label="Walking instructions"'));
+  assert.ok(html.includes('navigation-polish.css?v=minimal-v5'));
+  assert.ok(html.includes('app.js?v=minimal-v5'));
+  assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
+  assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
+  assert.ok(app.includes('function setNavStep(index)'));
+  assert.ok(app.includes('el.addEventListener(\'click\', () => setNavStep(idx))'));
+  assert.ok(app.includes('window.HallNavGuide.enhanceSteps'));
+  assert.ok(app.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'turn icons still work');
+  assert.ok(app.includes('for (let i = start + 1; i <= end; i++) ctx.lineTo'), 'highlight actual route');
+  assert.ok(!app.includes('voiceGuidanceOn'));
+  assert.ok(!app.includes('routeStepsExpanded'));
+  assert.ok(!app.includes("getElementById('btnNextStep')"));
+  assert.ok(css.includes('.expo-sponsor-strip { display:none !important; }'));
   assert.ok(css.includes('#nav-drawer.steps-expanded .drawer-steps'));
-  assert.ok(js.includes("window.HallNavGuide.enhanceSteps"));
-  assert.ok(js.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'left/right icons have reliable font awesome classes');
-  assert.ok(js.includes("container.replaceChildren()"));
-  assert.ok(js.includes("for (let i = start + 1; i <= end; i++) ctx.lineTo"));
-  assert.ok(js.includes("window.speechSynthesis.cancel()"));
+  assert.ok(ui.includes('mapTopChips'));
+  assert.ok(ui.includes('data-action="route"'));
+  assert.ok(ui.includes('data-action="fit"'));
+  assert.ok(!ui.includes('data-action="available"'));
+  assert.ok(!ui.includes('data-action="booked"'));
+  assert.ok(!ui.includes('data-action="total"'));
+  assert.ok(!ui.includes('document.body.appendChild(strip)'));
+  assert.ok(ui.includes("if (typeof hasActiveRoute === 'function' && hasActiveRoute())"));
 });
