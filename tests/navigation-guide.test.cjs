@@ -127,7 +127,7 @@ test('directions panel keeps a single optional voice button and clickable instru
   assert.ok(html.includes('onclick="toggleVoiceGuidance()"'));
   assert.ok(html.includes('class="drawer-voice-btn"'));
   assert.ok(html.includes('role="status" aria-live="polite"'));
-  assert.ok(html.includes('app.js?v=avatar-mascot-v8'));
+  assert.ok(html.includes('app.js?v=round-avatar-v9'));
   assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
   assert.ok(app.includes('function setNavStep(index)'));
