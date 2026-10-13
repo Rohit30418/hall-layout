@@ -73,8 +73,8 @@ function swapRoute() {
 /* ══════════════════════════════════════════
    NAV DRAWER
 ══════════════════════════════════════════ */
-function openNavDrawer() { document.getElementById('nav-drawer').classList.add('open'); }
-function closeNavDrawer() { document.getElementById('nav-drawer').classList.remove('open'); }
+function openNavDrawer() { document.getElementById('nav-drawer').classList.add('open'); document.body.classList.add('nav-drawer-visible'); }
+function closeNavDrawer() { document.getElementById('nav-drawer').classList.remove('open'); document.body.classList.remove('nav-drawer-visible'); }
 
 /* ══════════════════════════════════════════
    STATS
@@ -984,6 +984,8 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
 }
 
 function drawRouteSummaryBubble2d(anchorWorld) {
+  // The directions panel already displays the summary. Avoid covering the route with a second card.
+  if (document.body.classList.contains('nav-drawer-visible')) return;
   if (!routeMetrics || !routeMetrics.distanceLabel || !anchorWorld) return;
   const p = w2s(anchorWorld.x, anchorWorld.y);
   const title = `${routeMetrics.timeLabel} (${routeMetrics.distanceLabel})`;
@@ -2945,22 +2947,63 @@ function setNavStep(index) {
   else stopVoiceGuidance();
 }
 
+let routeStepsExpanded = false;
+function toggleRouteSteps() {
+  routeStepsExpanded = !routeStepsExpanded;
+  updateRouteStepsVisibility();
+  if (routeStepsExpanded) scrollActiveStepIntoView();
+}
+function updateRouteStepsVisibility() {
+  const steps = document.getElementById('drawerSteps');
+  const toggle = document.getElementById('btnToggleRouteSteps');
+  if (steps) steps.hidden = !routeStepsExpanded;
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(routeStepsExpanded));
+    toggle.innerHTML = routeStepsExpanded
+      ? '<i class="fa fa-chevron-up" aria-hidden="true"></i> Hide all steps'
+      : '<i class="fa fa-list-check" aria-hidden="true"></i> Show all steps';
+  }
+}
+function updateActiveNavCue() {
+  const step = navStepsData[currentNavStepIdx];
+  const title = document.getElementById('navNowTitle');
+  const detail = document.getElementById('navNowDetail');
+  const label = document.getElementById('navNowLabel');
+  const marker = document.getElementById('navNowIcon');
+  const upcoming = document.getElementById('navUpNext');
+  if (!step) return;
+  if (title) title.textContent = step.main || 'Follow the route';
+  if (detail) detail.textContent = step.sub || (step.type === 'end' ? 'Destination reached' : 'Follow the blue route shown on the map');
+  if (label) label.textContent = step.type === 'start' ? 'START HERE' : step.type === 'end' ? 'DESTINATION' : 'YOUR NEXT MOVE';
+  if (marker) {
+    marker.className = 'nav-now-icon nav-now-' + (['start','end','left','right','straight','bend','uturn'].includes(step.type) ? step.type : 'straight');
+    const ico = marker.querySelector('i');
+    if (ico) ico.className = 'fa ' + (step.icon || 'fa-arrow-up');
+  }
+  const next = navStepsData[currentNavStepIdx + 1];
+  if (upcoming) upcoming.textContent = next ? 'Up next: ' + (next.main || 'Continue') : 'You have reached your destination';
+}
+
 /* ══════════════════════════════════════════
    NAV PANEL
 ══════════════════════════════════════════ */
 function renderNavPanel(steps, fromLabel, toLabel) {
   stopVoiceGuidance();
   navStepsData = steps; currentNavStepIdx = 0;
+  routeStepsExpanded = false;
+  // Each new route starts silently; voice can be explicitly enabled again.
+  voiceGuidanceOn = false;
   document.getElementById('navFabFrom').textContent = fromLabel;
   document.getElementById('navFabTo').textContent   = toLabel;
   document.getElementById('fabStepBadge').textContent = steps.length + ' steps';
   document.getElementById('navDrawerFrom').textContent = fromLabel;
   document.getElementById('navDrawerTo').textContent   = toLabel;
   const turns = steps.reduce((sum, step) => sum + (Number.isInteger(step.turnsCount) ? step.turnsCount : (['left','right','uturn'].includes(step.type) ? 1 : 0)), 0);
-  document.getElementById('drawerStepCount').textContent   = routeMetrics.timeLabel || (steps.length + ' steps');
-  document.getElementById('drawerSummaryText').textContent = `${routeMetrics.distanceLabel || ''}${routeMetrics.distanceLabel ? ' · ' : ''}${turns} turn${turns !== 1 ? 's' : ''} · ${_usingWalkZones ? 'shortest aisle route' : 'aisle-safe route'}`;
+  document.getElementById('drawerStepCount').textContent   = routeMetrics.timeLabel || 'Walking route';
+  document.getElementById('drawerSummaryText').textContent = `${routeMetrics.distanceLabel || ''} estimated · ${turns} turn${turns !== 1 ? 's' : ''}`;
   document.body.classList.add('route-active');
   renderDrawerSteps();
+  updateRouteStepsVisibility();
   updateVoiceGuideButtons();
   document.getElementById('nav-fab').classList.add('show');
   openNavDrawer();
@@ -3001,7 +3044,7 @@ function renderDrawerSteps() {
     if (step.type === 'bend') {
       const hint = document.createElement('div');
       hint.className = 'step-hint';
-      hint.textContent = 'Two actions · highlighted together on the map';
+      hint.textContent = 'Follow the highlighted section on the map';
       body.appendChild(hint);
     }
     const num = document.createElement('div');
@@ -3030,12 +3073,16 @@ function scrollActiveStepIntoView() {
 
 function updateNavControls() {
   const total = navStepsData.length;
+  if (!total) return;
+  updateActiveNavCue();
   document.getElementById('navStepCounter').textContent = `${currentNavStepIdx + 1} / ${total}`;
   document.getElementById('btnPrevStep').disabled = currentNavStepIdx === 0;
   document.getElementById('btnNextStep').disabled = currentNavStepIdx === total - 1;
   const pct = total > 1 ? (currentNavStepIdx / (total - 1)) * 100 : 100;
   document.getElementById('drawerProgressFill').style.width = pct + '%';
   document.getElementById('fabStepBadge').textContent = `${currentNavStepIdx + 1}/${total}`;
+  const label = document.getElementById('navNowCounter');
+  if (label) label.textContent = `Step ${currentNavStepIdx + 1} of ${total}`;
 }
 
 function navStepPrev() {
@@ -4029,6 +4076,8 @@ function resetRouteVisualState(keepInputs = true) {
   closeNavDrawer();
   navStepsData = [];
   currentNavStepIdx = 0;
+  voiceGuidanceOn = false;
+  routeStepsExpanded = false;
   document.getElementById('btnClear').style.display = 'none';
   if (!keepInputs) {
     document.getElementById('routeFrom').value = '';
