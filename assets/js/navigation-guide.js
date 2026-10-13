@@ -91,7 +91,76 @@
       sub: side ? (side === 'straight ahead' ? 'Your destination is ahead' : 'Your destination is ' + side) : (ending.sub || "You've arrived"),
       turnsCount: 0
     });
-    return result;
+    return compactVisibleSteps(result, points, unit);
+  }
+
+  // Show ACTIONS instead of separately numbering the origin and destination.
+  // This changes only instructions and highlighted point ranges; never geometry.
+  function compactVisibleSteps(input, points, unit) {
+    if (!Array.isArray(input) || input.length < 3) return input;
+    const items = input.map(s => ({ ...s }));
+    const first = items[0];
+    const movement = items[1];
+    if (first && first.type === 'start' && movement &&
+        Number.isInteger(movement.pathStartIndex) && Number.isInteger(movement.pathEndIndex) &&
+        movement.pathEndIndex > movement.pathStartIndex) {
+      movement.pathStartIndex = Math.min(first.pathStartIndex || 0, movement.pathStartIndex);
+      // The first walking instruction already starts where the origin marker is.
+      if (movement.type === 'straight') {
+        const meters = distanceAlong(points, movement.pathStartIndex, movement.pathEndIndex, unit);
+        movement.main = 'Follow the aisle · ' + meters + ' m';
+        movement.spoken = 'Starting at your stall, follow the blue route for ' + meters + ' metres';
+      }
+      movement.origin = first.main;
+      items.shift();
+    }
+    const last = items[items.length - 1];
+    if (!last || last.type !== 'end') return items;
+    const original = String(last.main || '');
+    const destination = original.includes(' is ') ? original.split(' is ')[0].trim()
+      : original.replace(/^(?:Arrive at|Find|Look for)\s+/i, '').trim();
+    const name = destination || 'your destination';
+    const prev = items[items.length - 2];
+    if (prev && prev.type !== 'start' && Number.isInteger(prev.pathStartIndex) &&
+        Number.isInteger(prev.pathEndIndex) && prev.pathEndIndex > prev.pathStartIndex) {
+      const shortApproach = distanceAlong(points, prev.pathStartIndex, prev.pathEndIndex, unit) <= 3;
+      const realTurn = prev.type === 'right' || prev.type === 'left' || prev.type === 'uturn';
+      // Fold only very short destination-approach segments into arrival; retain
+      // any turn explicitly in both on-screen and spoken instructions.
+      if (shortApproach && ['straight','right','left','uturn'].includes(prev.type)) {
+        const instruction = realTurn
+          ? (prev.type === 'uturn' ? 'Turn around' : prev.type === 'right' ? 'Turn right' : 'Turn left') + ' to stall ' + name
+          : 'Look for stall ' + name;
+        const spoken = realTurn
+          ? instruction.replace(/stall /,'stall number ') + ' at the end of this route'
+          : 'At the end of the aisle, look for stall number ' + name;
+        items[items.length - 2] = {
+          ...last,
+          type: 'end',
+          main: instruction,
+          spoken,
+          sub: 'Follow the highlighted final approach',
+          turnsCount: (prev.turnsCount || (realTurn ? 1 : 0)),
+          pathStartIndex: prev.pathStartIndex,
+          pathEndIndex: Math.max(last.pathEndIndex, prev.pathEndIndex)
+        };
+        items.pop();
+        return items;
+      }
+    }
+    last.main = 'Look for stall ' + name;
+    last.spoken = 'At the end of your route, look for stall number ' + name;
+    last.sub = 'Follow the route to the destination entrance';
+    return items;
+  }
+
+  function distanceAlong(points, a, b, unit) {
+    let len = 0;
+    for (let i = a + 1; i <= b; i++) {
+      if (!points[i] || !points[i - 1]) return Infinity;
+      len += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    }
+    return Math.max(1, Math.round(len * unit));
   }
 
   const guide = Object.freeze({ enhanceSteps });
