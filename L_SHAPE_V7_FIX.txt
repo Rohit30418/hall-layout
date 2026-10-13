@@ -1,0 +1,21 @@
+L-SHAPE V7 FIX
+================
+This version does NOT depend on any red color/paint annotation.
+
+Source:
+- Table1 = real stall rectangle
+- Table2 / SpaceData = blank overlay rectangle
+
+Detection:
+1. Reads ALL textual fields from each SpaceData row.
+2. If any SpaceData text equals a StallNo (e.g. 14.14D), that space is used as the cutout.
+3. If the space is blank, coordinate-overlap fallback detects the booth.
+4. The overlay inner corner is preserved and its two outer edges are extended to the nearest booth corner.
+
+Result:
+- 2D fill is truly L-shaped.
+- Border follows the L notch.
+- Blank notch is not clickable as the stall.
+- The SpaceData overlay is not rendered as a utility/duplicate label.
+- Routing and 3D use the cutout geometry.
+- Browser console: window.__lShapeDebug shows detected cutouts.

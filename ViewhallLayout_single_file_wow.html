@@ -1,0 +1,4078 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Premium Interactive Stall Layout</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f0f2f5;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --border: rgba(0,0,0,0.07);
+  --border-strong: rgba(0,0,0,0.14);
+  --shadow-sm: 0 1px 6px rgba(0,0,0,0.08);
+  --shadow: 0 4px 20px rgba(0,0,0,0.10);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
+  --text: #0f172a;
+  --text-2: #334155;
+  --muted: #64748b;
+  --accent: #1d4ed8;
+  --accent-2: #3b82f6;
+  --accent-light: #eff6ff;
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --success: #059669;
+  --success-light: #ecfdf5;
+  --warn: #d97706;
+  --warn-light: #fffbeb;
+  --gray-hold: #94a3b8;
+  --path-color: #10b981;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: 'Inter', Arial, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --header-h: 62px;
+  --sidebar-w: 320px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font);
+  color: var(--text);
+  width: 100vw;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── HEADER BAR ─── */
+.header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+}
+.header-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-right: 4px; }
+.header-brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.header-brand-name { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); font-family: var(--font); }
+.header-brand-name span { color: var(--accent); }
+.header-divider { width: 1px; height: 26px; background: var(--border-strong); flex-shrink: 0; }
+
+/* Hall selector */
+.hall-pick { position: relative; flex-shrink: 0; }
+.hall-btn { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); cursor: pointer; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--text); transition: all .15s; white-space: nowrap; min-width: 130px; }
+.hall-btn:hover { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.hall-btn .chevron { margin-left: auto; font-size: 9px; color: var(--muted); transition: transform .2s; }
+.hall-btn.open .chevron { transform: rotate(180deg); }
+.hall-dropdown { position: absolute; top: calc(100% + 6px); left: 0; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); min-width: 180px; z-index: 999; list-style: none; padding: 6px; overflow-y: auto; max-height: 300px; display: none; }
+.hall-dropdown.open { display: block; animation: dropIn .15s ease; }
+@keyframes dropIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+.hall-dropdown li { padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 600; border-radius: 8px; transition: background .1s; color: var(--text-2); font-family: var(--font); }
+.hall-dropdown li:hover { background: var(--accent-light); color: var(--accent); }
+.hall-dropdown li.selected { color: var(--accent); background: var(--accent-light); font-weight: 700; }
+
+/* Search */
+.header-search { flex: 1; max-width: 400px; position: relative; }
+.header-search-input { width: 100%; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--text); padding: 9px 12px 9px 38px; outline: none; transition: all .15s; }
+.header-search-input:focus { border-color: var(--accent); background: var(--surface); }
+.header-search-input::placeholder { color: var(--muted); font-weight: 500; }
+.header-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+.search-results-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); z-index: 999; max-height: 260px; overflow-y: auto; display: none; padding: 6px; }
+.search-results-dropdown.open { display: block; animation: dropIn .15s ease; }
+.search-result-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; transition: background .1s; }
+.search-result-item:hover { background: var(--accent-light); }
+.search-result-item .sri-no { font-size: 12px; font-weight: 800; color: var(--accent); min-width: 60px; font-family: var(--font-mono); }
+.search-result-item .sri-company { font-size: 12px; color: var(--text-2); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font); }
+.search-result-item .sri-badge { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; font-family: var(--font); }
+.sri-badge.available { background: var(--success-light); color: #065f46; }
+.sri-badge.booked { background: var(--danger-light); color: #991b1b; }
+.sri-badge.hold { background: var(--warn-light); color: #92400e; }
+.search-empty { padding: 16px; text-align: center; color: var(--muted); font-size: 12px; font-weight: 600; }
+
+/* Header actions */
+.header-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.icon-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 14px; transition: all .15s; position: relative; }
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.icon-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.view-toggle { display: flex; background: var(--surface-2); border-radius: var(--radius-sm); padding: 3px; gap: 2px; border: 1.5px solid var(--border-strong); }
+.view-btn { background: transparent; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--muted); transition: all .15s; font-family: var(--font); white-space: nowrap; }
+.view-btn.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm); }
+.pdf-link { display: flex; align-items: center; gap: 6px; background: var(--danger); color: #fff; text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; font-family: var(--font); transition: background .15s; white-space: nowrap; }
+.pdf-link:hover { background: #b91c1c; }
+
+/* ─── CANVAS ─── */
+#webgl-container { position: absolute; top: var(--header-h); left: 0; right: 0; bottom: 0; z-index: 1; touch-action: none; }
+#canvas-2d { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; display: block; }
+#canvas-2d:active { cursor: grabbing; }
+
+/* ─── SIDEBAR ─── */
+.sidebar-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(3px); z-index: 300; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.sidebar-overlay.open { opacity: 1; pointer-events: all; }
+.sidebar { position: fixed; top: 0; left: -100%; bottom: 0; width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); box-shadow: var(--shadow-lg); z-index: 400; display: flex; flex-direction: column; transition: left .28s cubic-bezier(.16,1,.3,1); overflow: hidden; }
+.sidebar.open { left: 0; }
+.sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sidebar-title { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; font-family: var(--font); }
+.sidebar-close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--muted); transition: all .15s; }
+.sidebar-close:hover { background: var(--danger-light); color: var(--danger); border-color: transparent; }
+.sidebar-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+.sidebar-section-title { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; padding: 0 2px; font-family: var(--font); }
+
+/* ─── QUALITY MODE SELECTOR ─── */
+.quality-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.quality-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface-2);
+  cursor: pointer; transition: all .18s;
+  font-family: var(--font); text-align: center;
+}
+.quality-card:hover { border-color: var(--accent-2); background: var(--accent-light); }
+.quality-card.active { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 0 0 3px rgba(29,78,216,.12); }
+.qc-icon { font-size: 18px; margin-bottom: 2px; }
+.qc-label { font-size: 10px; font-weight: 800; color: var(--text-2); letter-spacing: .3px; }
+.qc-desc { font-size: 9px; color: var(--muted); font-weight: 600; line-height: 1.3; }
+.quality-card.active .qc-label { color: var(--accent); }
+.quality-section { display: none; }
+.quality-section.visible { display: flex; flex-direction: column; gap: 8px; }
+
+/* Mode loading overlay */
+#quality-loading {
+  position: absolute; inset: 0; background: rgba(240,242,245,.85);
+  backdrop-filter: blur(6px); z-index: 90; display: none;
+  align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+}
+#quality-loading.show { display: flex; }
+.ql-spinner { width: 40px; height: 40px; border: 3px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ql-text { font-size: 13px; font-weight: 700; color: var(--text-2); font-family: var(--font); }
+
+/* Route fields */
+.route-field-wrap { display: flex; align-items: center; background: var(--surface-2); border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 12px; gap: 8px; transition: border-color .15s; }
+.route-field-wrap:focus-within { border-color: var(--accent); background: var(--surface); }
+.route-field-wrap i { font-size: 11px; flex-shrink: 0; }
+.route-field-wrap input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--text); padding: 10px 6px; }
+.route-field-wrap input::placeholder { color: var(--muted); font-weight: 500; }
+.route-swap { display: flex; justify-content: center; }
+.route-swap-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 50%; cursor: pointer; color: var(--muted); font-size: 11px; transition: all .15s; }
+.route-swap-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+.btn-go { width: 100%; background: var(--text); color: #fff; border: none; padding: 12px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+.btn-go:hover { background: var(--accent); }
+.btn-go-clear { width: 100%; background: transparent; color: var(--muted); border: 1.5px solid var(--border-strong); padding: 10px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
+.btn-go-clear:hover { background: var(--danger-light); color: var(--danger); border-color: transparent; }
+
+/* Sidebar stats */
+.stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.stat-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+.stat-val { font-size: 18px; font-weight: 800; color: var(--text); font-family: var(--font); }
+.stat-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 2px; font-family: var(--font); }
+
+/* ─── LEGEND (TOP LEFT, FIXED) ─── */
+.map-legend {
+  position: absolute;
+  top: calc(var(--header-h) + 12px);
+  left: 12px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.leg-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-2); font-family: var(--font); }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* FPS indicator */
+#fps-indicator {
+  position: absolute; bottom: 16px; right: 60px;
+  background: rgba(15,23,42,.75); color: #94a3b8;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 4px 8px; border-radius: 6px; z-index: 100;
+  display: none;
+}
+#fps-indicator.show { display: block; }
+
+/* tooltips disabled */
+#three-tooltip, #tooltip-2d { display: none !important; visibility: hidden !important; pointer-events: none; }
+
+/* ─── 3D LABELS ─── */
+.stall-label { color: #0f172a; font-size: 14px; line-height: 1.08; font-weight: 900; font-family: 'Inter', Arial, sans-serif; text-shadow: 0 1px 0 #fff, 0 0 4px #fff; pointer-events: none !important; white-space: nowrap; user-select: none; background: rgba(255,255,255,.72); border: 1px solid rgba(15,23,42,.08); border-radius: 7px; padding: 2px 6px; box-shadow: 0 4px 12px rgba(15,23,42,.10); transform-origin: center center; will-change: transform, opacity, max-width; overflow: hidden; text-overflow: ellipsis; text-align: center; box-sizing: border-box; }
+.util-label { color: var(--danger); font-size: 13px; line-height: 1.08; font-weight: 900; font-family: 'Inter', Arial, sans-serif; text-align: center; text-shadow: 0 1px 0 #fff, 0 0 4px #fff; pointer-events: none !important; white-space: nowrap; user-select: none; background: rgba(255,255,255,.72); border: 1px solid rgba(220,38,38,.12); border-radius: 7px; padding: 2px 6px; box-shadow: 0 4px 12px rgba(15,23,42,.08); transform-origin: center center; will-change: transform, opacity; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.route-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; font-family: 'Inter', Arial, sans-serif; letter-spacing: .4px; text-transform: uppercase; color: #fff; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,.28); border: 2px solid; white-space: nowrap; }
+.badge-start { background: var(--success); border-color: #34d399; }
+.badge-end   { background: var(--danger);  border-color: #f87171; }
+
+/* Active stall pin */
+.active-pin { position: relative; pointer-events: none !important; text-align: center; bottom: 20px; }
+.pin-pulse { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 60px; height: 60px; background: rgba(29,78,216,.22); border-radius: 50%; z-index: -1; animation: pulse 2s infinite; }
+.pin-label { display: inline-block; background: var(--accent); color: #fff; border: 2.5px solid #fff; border-radius: 18px; padding: 5px 13px; font-weight: 800; font-size: 13px; font-family: 'Inter', Arial, sans-serif; white-space: nowrap; box-shadow: 0 4px 12px rgba(29,78,216,.3); position: relative; }
+.pin-label::after { content: ''; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top-color: var(--accent); border-bottom: 0; }
+@keyframes pulse { 0% { transform: translate(-50%,-50%) scale(.7); opacity:.9; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity:.3; } 100% { transform: translate(-50%,-50%) scale(.7); opacity:.9; } }
+
+/* ─── LOADER ─── */
+#loader { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 24px; text-align: center; font-weight: 600; font-size: 14px; font-family: var(--font); box-shadow: var(--shadow-lg); z-index: 500; display: none; min-width: 180px; }
+#loader img { width: 36px; margin-bottom: 10px; border-radius: 50%; }
+
+/* ─── DIALOGS ─── */
+.ui-widget.ui-widget-content { border: none !important; border-radius: 20px !important; background: #fff !important; box-shadow: 0 20px 48px rgba(0,0,0,.18) !important; font-family: 'Inter', Arial, sans-serif !important; }
+.ui-dialog-titlebar { background: transparent !important; border: none !important; padding: 12px 16px 0 !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; min-height: 36px !important; }
+.ui-dialog-title { display: none !important; }
+.ui-dialog-titlebar-close { position: relative !important; top: auto !important; right: auto !important; margin: 0 !important; background: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; border-radius: 50% !important; width: 30px !important; height: 30px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; z-index: 9999 !important; opacity: 1 !important; visibility: visible !important; transition: all .2s !important; flex-shrink: 0 !important; padding: 0 !important; box-shadow: none !important; }
+.ui-dialog-titlebar-close:hover { background: #fee2e2 !important; border-color: #fca5a5 !important; transform: rotate(90deg); }
+.ui-dialog-titlebar-close::after { content: '\f00d'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 12px; color: #64748b; display: block; }
+.ui-dialog-titlebar-close:hover::after { color: #dc2626; }
+.ui-dialog-content { padding: 6px 20px 20px !important; }
+.ui-dialog .ui-dialog-buttonpane { border: none !important; background: transparent !important; padding: 0 20px 20px !important; }
+.ui-dialog .ui-dialog-buttonpane button { width: 100% !important; background: var(--text) !important; color: #fff !important; border: none !important; padding: 12px !important; border-radius: var(--radius-sm) !important; font-weight: 700 !important; font-size: 14px !important; cursor: pointer; font-family: 'Inter', Arial, sans-serif !important; margin: 0 !important; }
+.ui-dialog .ui-dialog-buttonpane button:hover { background: #1e293b !important; }
+.ui-widget-overlay { background: rgba(15,23,42,.45) !important; backdrop-filter: blur(3px); opacity: 1 !important; z-index: 1000 !important; }
+.ui-dialog { z-index: 1001 !important; }
+.stall-card { display:flex; flex-direction:column; gap:12px; font-family: var(--font); }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid #f1f5f9; }
+.card-title { font-size:20px; font-weight:800; font-family: var(--font); }
+.card-badge { padding:4px 10px; border-radius:20px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; display:inline-flex; align-items:center; gap:4px; font-family: var(--font); }
+.cb-available { background:var(--success-light); color:#065f46; }
+.cb-booked    { background:var(--danger-light);  color:#991b1b; }
+.cb-hold      { background:var(--warn-light);    color:#92400e; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.info-cell { background:#f8fafc; border:1px solid #f1f5f9; border-radius:var(--radius-sm); padding:10px; display:flex; flex-direction:column; gap:2px; }
+.info-label { font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-family: var(--font); }
+.info-val { font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:6px; font-family: var(--font); }
+.info-val i { color:var(--accent); font-size:12px; width:14px; text-align:center; }
+.co-avatar { width:56px; height:56px; border-radius:16px; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; margin-bottom:12px; background:linear-gradient(135deg,var(--accent),#60a5fa); box-shadow:0 6px 16px rgba(29,78,216,.22); }
+.co-name { font-size:20px; font-weight:800; margin-bottom:8px; font-family: var(--font); }
+.btn-profile { display:flex; align-items:center; justify-content:center; gap:6px; background:var(--accent); color:#fff!important; text-decoration:none; padding:12px; border-radius:var(--radius-sm); font-weight:700; font-size:14px; margin-top:8px; transition:background .15s; font-family: var(--font); }
+.btn-profile:hover { background:#1e40af; }
+
+/* NAV FAB */
+#nav-fab { position: absolute; bottom: 80px; right: 16px; z-index: 150; display: none; flex-direction: column; align-items: flex-end; gap: 8px; animation: fabIn .25s cubic-bezier(.16,1,.3,1); }
+#nav-fab.show { display: flex; }
+@keyframes fabIn { from { opacity:0; transform:translateY(12px) scale(.92); } to { opacity:1; transform:translateY(0) scale(1); } }
+.nav-fab-btn { display: flex; align-items: center; gap: 9px; background: var(--accent); color: #fff; border: none; border-radius: 28px; padding: 12px 18px; font-family: var(--font); font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 24px rgba(29,78,216,.38), 0 2px 8px rgba(29,78,216,.22); transition: all .18s; white-space: nowrap; }
+.nav-fab-btn:hover { background: #1e40af; transform: translateY(-1px); }
+.nav-fab-btn .fab-step-badge { background: rgba(255,255,255,.28); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800; }
+.nav-fab-clear { display: flex; align-items: center; gap: 6px; background: var(--surface); color: var(--danger); border: 1.5px solid rgba(220,38,38,.25); border-radius: 20px; padding: 6px 12px; font-family: var(--font); font-size: 11px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-sm); transition: all .15s; white-space: nowrap; }
+.nav-fab-clear:hover { background: var(--danger-light); border-color: var(--danger); }
+.nav-fab-summary { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 700; font-family: var(--font); color: var(--text-2); box-shadow: var(--shadow-sm); white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.nav-fab-summary .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-start { background: var(--success); }
+.dot-end   { background: var(--danger); }
+
+/* DIRECTIONS DRAWER */
+#nav-drawer { position: absolute; top: var(--header-h); right: -370px; bottom: 0; width: 350px; max-width: calc(100vw - 16px); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -8px 0 32px rgba(15,23,42,.10); z-index: 180; display: flex; flex-direction: column; transition: right .3s cubic-bezier(.16,1,.3,1); overflow: hidden; }
+#nav-drawer.open { right: 0; }
+.drawer-header { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.drawer-header-top { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; min-width: 0; }
+.drawer-title { font-size: 14px; font-weight: 800; color: var(--text); flex: 1; font-family: var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drawer-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 50%; cursor: pointer; font-size: 11px; color: var(--muted); transition: all .15s; flex-shrink: 0; }
+.drawer-close:hover { background: var(--danger-light); color: var(--danger); border-color: transparent; }
+.drawer-route-row { display: flex; align-items: center; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; min-width: 0; }
+.drawer-chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; font-family: var(--font-mono); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer-chip-start { background: var(--success-light); color: #065f46; }
+.drawer-chip-end   { background: var(--danger-light);  color: #991b1b; }
+.drawer-arrow { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+.drawer-summary { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; font-size: 11px; color: var(--muted); font-weight: 600; font-family: var(--font); flex-wrap: wrap; }
+.drawer-pill { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+.drawer-progress { height: 3px; background: #e2e8f0; margin: 0 16px 12px; border-radius: 10px; overflow: hidden; }
+.drawer-progress-fill { height: 100%; background: var(--accent); border-radius: 10px; transition: width .3s ease; }
+.drawer-steps { overflow-y: auto; flex: 1; padding: 8px; -webkit-overflow-scrolling: touch; min-height: 0; }
+.nav-step { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .12s; border: 1.5px solid transparent; margin-bottom: 2px; min-width: 0; }
+.nav-step:hover { background: var(--surface-2); }
+.nav-step.step-active { background: var(--accent-light); border-color: #bfdbfe; }
+.step-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; font-weight: 700; }
+.si-start { background: var(--success-light); color: var(--success); }
+.si-end { background: var(--danger-light); color: var(--danger); }
+.si-straight { background: #eff6ff; color: var(--accent); }
+.si-left { background: var(--warn-light); color: var(--warn); }
+.si-right { background: var(--warn-light); color: var(--warn); }
+.si-uturn { background: #fdf2f8; color: #9d174d; }
+.step-body { flex: 1; min-width: 0; overflow: hidden; }
+.step-main { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.35; font-family: var(--font); word-break: break-word; }
+.step-sub { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 3px; font-family: var(--font); }
+.step-landmark { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; background: #f1f5f9; border-radius: 6px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; color: var(--text-2); font-family: var(--font-mono); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step-landmark i { font-size: 9px; color: var(--muted); }
+.step-num { font-size: 10px; font-weight: 800; color: #cbd5e1; flex-shrink: 0; min-width: 18px; text-align: right; padding-top: 2px; font-family: var(--font-mono); }
+.drawer-step-controls { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid #f1f5f9; flex-shrink: 0; background: var(--surface-2); min-width: 0; }
+.nav-step-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-2); font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; min-width: 0; white-space: nowrap; }
+.nav-step-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.nav-step-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.nav-step-counter { font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: center; font-family: var(--font-mono); }
+
+/* Zoom controls */
+.zoom-controls { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 4px; z-index: 100; }
+.zoom-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; color: var(--text-2); box-shadow: var(--shadow-sm); transition: all .15s; }
+.zoom-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+/* Sidebar mobile search */
+.sidebar-mobile-search { display: none; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  :root { --header-h: 56px; --sidebar-w: 92vw; }
+  .header-brand, .header-divider, .header-search, .pdf-link { display: none !important; }
+  .hall-btn { min-width: 0; padding: 7px 10px; font-size: 12px; }
+  .header-actions { margin-left: auto; }
+  #nav-drawer { width: 100%; max-width: 100%; right: 0; bottom: -100%; top: auto; height: 72vh; border-left: none; border-top: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; box-shadow: 0 -8px 32px rgba(15,23,42,.12); transition: bottom .3s cubic-bezier(.16,1,.3,1); }
+  #nav-drawer.open { right: 0; bottom: 0; }
+  #nav-fab { bottom: 16px; right: 50%; transform: translateX(50%); align-items: center; }
+  .map-legend { top: calc(var(--header-h) + 8px); left: 8px; transform: scale(0.85); transform-origin: top left; }
+  .sidebar-mobile-search { display: flex !important; }
+  .nav-step-btn { padding: 8px 6px; font-size: 11px; }
+  .drawer-chip { max-width: 100px; }
+}
+
+</style>
+<style>
+/* =========================================================
+   WOW UI Layer for ViewhallLayout
+   Add this file after base.css. It keeps your existing engine
+   and upgrades the frontend feel for client production demos.
+   ========================================================= */
+
+:root {
+  --bg: radial-gradient(circle at top left, #eaf2ff 0%, #f6f8fb 34%, #eef2f7 100%);
+  --surface-glass: rgba(255,255,255,.84);
+  --premium-shadow: 0 18px 60px rgba(15,23,42,.16);
+  --premium-ring: 0 0 0 4px rgba(29,78,216,.12);
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  overscroll-behavior: none;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.header {
+  background: var(--surface-glass);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-bottom: 1px solid rgba(15,23,42,.08);
+  box-shadow: 0 10px 36px rgba(15,23,42,.08);
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.header-brand-dot {
+  width: 11px;
+  height: 11px;
+  background: linear-gradient(135deg, #2563eb, #22c55e);
+  box-shadow: 0 0 0 5px rgba(37,99,235,.11), 0 0 22px rgba(37,99,235,.32);
+}
+
+.header-brand-name {
+  font-size: 16px;
+  letter-spacing: -.45px;
+}
+
+.hall-btn,
+.header-search-input,
+.icon-btn,
+.view-toggle,
+.route-field-wrap,
+.stat-card,
+.zoom-btn {
+  box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+}
+
+.header-search-input:focus,
+.route-field-wrap:focus-within,
+.hall-btn:hover,
+.icon-btn:hover {
+  box-shadow: var(--premium-ring), 0 1px 0 rgba(255,255,255,.7) inset;
+}
+
+.search-results-dropdown,
+.hall-dropdown,
+.sidebar,
+#nav-drawer,
+.ui-widget.ui-widget-content {
+  box-shadow: var(--premium-shadow) !important;
+}
+
+.view-toggle {
+  background: rgba(241,245,249,.82);
+  border-color: rgba(15,23,42,.09);
+}
+.view-btn {
+  min-height: 32px;
+}
+.view-btn.active {
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  color: var(--accent);
+}
+
+/* Cleaner canvas backdrop */
+#webgl-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(59,130,246,.12), transparent 34%),
+              radial-gradient(circle at 80% 70%, rgba(16,185,129,.10), transparent 34%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Collapsible legend */
+.map-legend {
+  background: rgba(255,255,255,.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 18px;
+  padding: 8px;
+  min-width: 158px;
+  transition: width .2s ease, padding .2s ease, transform .2s ease;
+}
+.legend-head {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 6px;
+  cursor: pointer;
+  color: var(--text);
+  font: 800 11px/1 var(--font);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+.legend-head i { color: var(--accent); }
+.legend-body { display: flex; flex-direction: column; gap: 6px; padding: 4px 6px 6px; }
+.map-legend.collapsed { min-width: 0; width: 44px; padding: 6px; }
+.map-legend.collapsed .legend-head span,
+.map-legend.collapsed .legend-head .legend-chev,
+.map-legend.collapsed .legend-body { display: none; }
+.map-legend.collapsed .legend-head { justify-content: center; padding: 7px 0; }
+
+/* Bigger, app-like touch controls */
+.zoom-controls { right: 14px; gap: 8px; }
+.zoom-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(14px);
+  border-color: rgba(15,23,42,.10);
+  box-shadow: 0 8px 28px rgba(15,23,42,.12);
+}
+
+/* Selected stall bottom card: Google Maps style */
+.stall-bottom-card {
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 170;
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 24px;
+  box-shadow: 0 18px 60px rgba(15,23,42,.22);
+  padding: 14px;
+  display: none;
+  transform: translateY(18px) scale(.98);
+  opacity: 0;
+  transition: transform .22s cubic-bezier(.16,1,.3,1), opacity .18s ease;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.stall-bottom-card.show { display: block; transform: translateY(0) scale(1); opacity: 1; }
+.stall-card-top { display: flex; align-items: flex-start; gap: 12px; }
+.stall-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-weight: 900;
+  font-size: 16px;
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+  box-shadow: 0 10px 24px rgba(37,99,235,.28);
+}
+.stall-card-main { flex: 1; min-width: 0; }
+.stall-card-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.stall-card-no { font-size: 17px; font-weight: 900; letter-spacing: -.25px; color: var(--text); font-family: var(--font); }
+.stall-card-company { margin-top: 3px; font-size: 12px; font-weight: 650; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stall-card-meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.stall-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.stall-chip.available { background: var(--success-light); color: #047857; }
+.stall-chip.booked { background: var(--danger-light); color: #991b1b; }
+.stall-chip.hold { background: var(--warn-light); color: #92400e; }
+.stall-chip.neutral { background: #f1f5f9; color: #475569; }
+.stall-close-btn,
+.stall-fav-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 13px;
+  background: rgba(248,250,252,.95);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .16s ease;
+  flex-shrink: 0;
+}
+.stall-close-btn:hover { color: var(--danger); background: var(--danger-light); }
+.stall-fav-btn.active { color: #f59e0b; background: #fffbeb; border-color: #fde68a; }
+.stall-card-actions { display: grid; grid-template-columns: 1.2fr 1fr 44px; gap: 8px; margin-top: 13px; }
+.stall-action-btn {
+  border: 0;
+  border-radius: 15px;
+  padding: 11px 12px;
+  font: 800 12px/1 var(--font);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  white-space: nowrap;
+}
+.stall-action-btn:active { transform: scale(.98); }
+.stall-action-primary { color: #fff; background: linear-gradient(135deg, #1d4ed8, #3b82f6); box-shadow: 0 10px 24px rgba(29,78,216,.26); }
+.stall-action-secondary { color: var(--text-2); background: #f1f5f9; }
+.stall-action-icon { color: var(--text-2); background: #f8fafc; border: 1px solid rgba(15,23,42,.08); }
+
+/* Mobile search pill and sheet */
+.mobile-search-pill {
+  position: absolute;
+  top: calc(var(--header-h) + 12px);
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 130;
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 18px;
+  background: rgba(255,255,255,.94);
+  color: var(--muted);
+  box-shadow: 0 12px 36px rgba(15,23,42,.13);
+  padding: 12px 14px;
+  font: 800 13px/1 var(--font);
+  display: none;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.mobile-search-pill i { color: var(--accent); }
+.search-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15,23,42,.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.search-sheet-overlay.open { display: block; opacity: 1; }
+.search-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 82vh;
+  min-height: 52vh;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -18px 60px rgba(15,23,42,.24);
+  padding: 10px 14px max(18px, env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform .26s cubic-bezier(.16,1,.3,1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.search-sheet-overlay.open .search-sheet { transform: translateY(0); }
+.sheet-handle { width: 44px; height: 5px; background: #cbd5e1; border-radius: 99px; margin: 0 auto 2px; }
+.search-sheet-head { display: flex; align-items: center; gap: 10px; }
+.search-sheet-input-wrap { flex: 1; display: flex; align-items: center; gap: 9px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 0 12px; }
+.search-sheet-input-wrap:focus-within { border-color: var(--accent); box-shadow: var(--premium-ring); background: #fff; }
+.search-sheet-input { flex: 1; border: 0; outline: 0; background: transparent; padding: 13px 0; color: var(--text); font: 750 14px/1 var(--font); }
+.search-sheet-close { width: 42px; height: 42px; border: 0; border-radius: 14px; background: #f1f5f9; color: var(--muted); }
+.search-sheet-results { flex: 1; overflow-y: auto; display: block !important; box-shadow: none; border: 0; padding: 0; max-height: none; }
+.search-sheet-results.open { display: block !important; }
+
+/* Drawer bottom-sheet feel */
+.drawer-handle {
+  display: none;
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  margin: 8px auto 0;
+  flex-shrink: 0;
+}
+.nav-step.step-active { box-shadow: 0 0 0 3px rgba(29,78,216,.08); }
+.nav-fab-btn { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+
+/* Error and toast */
+.map-error-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 800;
+  width: min(330px, calc(100vw - 32px));
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 22px;
+  box-shadow: var(--premium-shadow);
+  padding: 20px;
+  text-align: center;
+  display: none;
+}
+.map-error-box.show { display: block; }
+.map-error-icon { width: 48px; height: 48px; border-radius: 16px; background: var(--danger-light); color: var(--danger); display: inline-flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 10px; }
+.map-error-title { font-size: 16px; font-weight: 900; margin-bottom: 5px; }
+.map-error-text { color: var(--muted); font-size: 13px; line-height: 1.45; margin-bottom: 14px; }
+.map-error-btn { border: 0; border-radius: 14px; background: var(--text); color: #fff; padding: 11px 16px; font-weight: 800; cursor: pointer; }
+.toast-stack { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: rgba(15,23,42,.92); color: #fff; border-radius: 999px; padding: 10px 14px; font: 800 12px/1 var(--font); box-shadow: 0 12px 32px rgba(15,23,42,.25); display: flex; align-items: center; gap: 8px; opacity: 0; transform: translateY(12px); animation: toastIn .22s ease forwards, toastOut .22s ease forwards 2.5s; }
+@keyframes toastIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }
+
+/* Help overlay */
+.map-help-card {
+  position: absolute;
+  top: calc(var(--header-h) + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 140;
+  background: rgba(15,23,42,.92);
+  color: #fff;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(15,23,42,.22);
+  padding: 12px 14px;
+  width: min(420px, calc(100vw - 32px));
+  display: none;
+}
+.map-help-card.show { display: block; animation: helpIn .24s ease; }
+@keyframes helpIn { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.help-title { font-weight: 900; font-size: 13px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.help-title button { border: 0; background: rgba(255,255,255,.12); color: #fff; border-radius: 9px; width: 26px; height: 26px; }
+.help-points { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: #cbd5e1; font-size: 11.5px; font-weight: 650; }
+.help-points i { color: #93c5fd; margin-right: 5px; }
+
+/* Favorite star marker on canvas is drawn by JS; this styles matching UI icons. */
+.favorite-gold { color: #f59e0b !important; }
+
+/* Hide dev FPS unless debug mode is enabled */
+body:not(.debug-mode) #fps-indicator { display: none !important; }
+
+@media (min-width: 769px) {
+  .stall-bottom-card { left: auto; right: 22px; bottom: 22px; width: 440px; }
+}
+
+@media (max-width: 768px) {
+  :root { --header-h: 58px; }
+  .header { gap: 7px; }
+  .hall-btn { border-radius: 14px; max-width: 138px; overflow: hidden; }
+  .view-btn { padding: 7px 9px; }
+  .icon-btn { width: 39px; height: 39px; border-radius: 14px; }
+  .mobile-search-pill { display: flex; }
+  .map-legend { top: calc(var(--header-h) + 64px); }
+  .zoom-controls { top: auto; bottom: 96px; transform: none; }
+  #nav-fab.show ~ .stall-bottom-card.show { bottom: 92px; }
+  .stall-card-actions { grid-template-columns: 1fr 1fr 42px; }
+  .stall-action-btn { padding: 11px 8px; font-size: 11.5px; }
+  .drawer-handle { display: block; }
+  #nav-drawer { height: 76vh; }
+  .help-points { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 380px) {
+  .stall-card-actions { grid-template-columns: 1fr; }
+  .stall-action-icon { min-height: 38px; }
+}
+
+/* Patch: direct popup mode — no favorite/share/start/go bottom actions. */
+.stall-fav-btn { display: none !important; }
+.stall-bottom-card { display: none !important; }
+.search-sheet-results.search-results-dropdown {
+  position: static !important;
+  display: none;
+  margin-top: 10px;
+  max-height: min(55vh, 360px);
+  overflow-y: auto;
+  box-shadow: none;
+}
+.search-sheet-results.search-results-dropdown.open {
+  display: block !important;
+}
+#nav-drawer.open { visibility: visible; }
+.drawer-handle { cursor: default; }
+
+
+/* Patch v4: mobile search opens from top so keyboard never hides suggestions. */
+.search-sheet-overlay.open {
+  display: block;
+  opacity: 1;
+  overflow-y: auto;
+}
+.search-sheet {
+  top: calc(var(--header-h) + 8px);
+  bottom: auto !important;
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  width: auto;
+  min-height: 0 !important;
+  max-height: calc(var(--wow-vvh, 100dvh) - var(--header-h) - 18px);
+  border-radius: 22px;
+  padding: 12px;
+  transform: translateY(-18px) scale(.98);
+  opacity: 0;
+}
+.search-sheet-overlay.open .search-sheet {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.search-sheet-results {
+  flex: 0 1 auto;
+  max-height: calc(var(--wow-vvh, 100dvh) - var(--header-h) - 96px) !important;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+.search-sheet-input {
+  font-size: 16px; /* prevents iOS zoom and keeps keyboard behavior stable */
+}
+body.search-sheet-is-open #nav-fab,
+body.search-sheet-is-open .zoom-controls {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .search-sheet {
+    top: 82px;
+    left: 50%;
+    right: auto;
+    width: min(560px, calc(100vw - 32px));
+    transform: translate(-50%, -18px) scale(.98);
+  }
+  .search-sheet-overlay.open .search-sheet {
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* route-company-3d-controls-fix-9: keep map controls usable in 2D and 3D */
+.zoom-controls { z-index: 185; }
+#webgl-container .zoom-controls { pointer-events: auto; }
+@media (min-width: 769px) { .zoom-controls { right: 18px; } }
+
+</style>
+</head>
+<body>
+<datalist id="stallList"></datalist>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title"><i class="fa fa-sliders" style="color:var(--accent);margin-right:8px"></i>Navigation</div>
+    <button class="sidebar-close" onclick="closeSidebar()"><i class="fa fa-xmark"></i></button>
+  </div>
+  <div class="sidebar-body">
+
+    <!-- Mobile-only search -->
+    <div class="sidebar-section sidebar-mobile-search">
+      <div class="sidebar-section-title">Search</div>
+      <div class="route-field-wrap">
+        <i class="fa fa-magnifying-glass" style="color:var(--muted)"></i>
+        <input id="sidebarSearchInput" placeholder="Search stall or company..." autocomplete="off" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text);padding:10px 6px;" />
+      </div>
+      <div id="sidebarSearchResults" style="display:none;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--radius-sm);max-height:160px;overflow-y:auto;padding:4px;"></div>
+    </div>
+
+    <!-- 3D quality selector removed: 3D is locked to Normal mode for WebView performance. -->
+
+    <!-- Hall stats -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Hall Stats</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--success)" id="statAvail">—</div><div class="stat-lbl">Available</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--danger)" id="statBooked">—</div><div class="stat-lbl">Booked</div></div>
+      </div>
+    </div>
+
+    <!-- Route navigation -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Find Route</div>
+      <div class="route-field-wrap">
+        <i class="fa fa-circle-dot" style="color:var(--success)"></i>
+        <input id="routeFrom" placeholder="From stall / company / area" list="stallList" autocomplete="off" />
+      </div>
+      <div class="route-swap">
+        <button class="route-swap-btn" onclick="swapRoute()" title="Swap from/to"><i class="fa fa-arrow-up-arrow-down"></i></button>
+      </div>
+      <div class="route-field-wrap">
+        <i class="fa fa-location-dot" style="color:var(--danger)"></i>
+        <input id="routeTo" placeholder="To stall / company / area" list="stallList" autocomplete="off" />
+      </div>
+      <button class="btn-go" id="btnRoute" onclick="calculateRoute()"><i class="fa fa-route"></i> Get Directions</button>
+      <button class="btn-go-clear" id="btnClear" onclick="clearRoute()" style="display:none"><i class="fa fa-xmark"></i> Clear Route</button>
+    </div>
+
+    <!-- PDF download -->
+    <div class="sidebar-section">
+      <a id="hallPdf" href="#" download="hall-layout" class="pdf-link" style="justify-content:center"><i class="fa fa-download"></i> Download Hall PDF</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Header bar -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-brand-dot"></div>
+    <div class="header-brand-name">Stall<span>Map</span></div>
+  </div>
+  <div class="header-divider"></div>
+
+  <div class="hall-pick">
+    <button class="hall-btn" id="hallBtn">
+      <i class="fa fa-map-location-dot" style="color:var(--accent);font-size:11px"></i>
+      <span id="hallBtnText">Select Hall</span>
+      <i class="fa fa-chevron-down chevron"></i>
+    </button>
+    <ul class="hall-dropdown" id="hallDropdown">
+      <li data-v="" data-n="Select Hall">Select Hall</li>
+      <li data-v="8"  data-n="HALL 1">HALL 1</li>
+      <li data-v="9"  data-n="HALL 3">HALL 3</li>
+      <li data-v="18" data-n="HALL 5">HALL 5</li>
+      <li data-v="19" data-n="HALL 7">HALL 7</li>
+      <li data-v="30" data-n="HALL 9A">HALL 9A</li>
+      <li data-v="29" data-n="HALL 9B">HALL 9B</li>
+      <li data-v="28" data-n="HALL 9C">HALL 9C</li>
+      <li data-v="27" data-n="HALL 9D">HALL 9D</li>
+      <li data-v="31" data-n="HALL 14">HALL 14</li>
+      <li data-v="33" data-n="HALL 15">HALL 15</li>
+      <li data-v="34" data-n="HALL 16">HALL 16</li>
+      <li data-v="37" data-n="HALL 17">HALL 17</li>
+      <li data-v="23" data-n="HALL 6">HALL 6</li>
+    </ul>
+  </div>
+
+  <div class="header-search" id="headerSearch">
+    <i class="fa fa-magnifying-glass header-search-icon"></i>
+    <input class="header-search-input" id="globalSearchInput" placeholder="Search stall or company..." autocomplete="off" />
+    <div class="search-results-dropdown" id="searchResultsDropdown"></div>
+  </div>
+
+  <div class="header-actions">
+    <div class="view-toggle">
+      <button class="view-btn active" id="btn2D" onclick="switchView('2d')"><i class="fa fa-map"></i> 2D</button>
+      <button class="view-btn"        id="btn3D" onclick="switchView('3d')"><i class="fa fa-cube"></i> 3D</button>
+    </div>
+    <button class="icon-btn" onclick="toggleSidebar()" title="Navigation" id="sidebarToggleBtn">
+      <i class="fa fa-sliders"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Canvas layer -->
+<div id="webgl-container">
+  <canvas id="canvas-2d"></canvas>
+  <div id="three-tooltip"></div>
+  <div id="tooltip-2d"></div>
+</div>
+
+<!-- Quality loading overlay removed: fixed Normal mode. -->
+
+<!-- Zoom controls -->
+<div class="zoom-controls" id="zoomControls">
+  <button class="zoom-btn" onclick="zoomMap(1.25)" title="Zoom in"><i class="fa fa-plus"></i></button>
+  <button class="zoom-btn" onclick="zoomMap(0.8)"  title="Zoom out"><i class="fa fa-minus"></i></button>
+  <button class="zoom-btn" onclick="resetMapView()" title="Fit to view"><i class="fa fa-expand"></i></button>
+</div>
+
+<!-- FPS indicator -->
+<div id="fps-indicator" class="show">FPS: —</div>
+
+<!-- Legend — TOP LEFT, FIXED -->
+<div class="map-legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#059669"></div>Available</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Booked</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#d97706"></div>Prov. Blocked</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#94a3b8"></div>On Hold</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#1d4ed8"></div>Selected</div>
+</div>
+
+<!-- NAV FAB -->
+<div id="nav-fab">
+  <div class="nav-fab-summary" id="navFabSummary">
+    <div class="dot dot-start"></div>
+    <span id="navFabFrom" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <i class="fa fa-arrow-right" style="font-size:9px;color:var(--muted)"></i>
+    <div class="dot dot-end"></div>
+    <span id="navFabTo" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="nav-fab-clear" onclick="clearRoute()"><i class="fa fa-xmark"></i> Clear</button>
+    <button class="nav-fab-btn" onclick="openNavDrawer()">
+      <i class="fa fa-route"></i> Directions
+      <span class="fab-step-badge" id="fabStepBadge">0 steps</span>
+    </button>
+  </div>
+</div>
+
+<!-- DIRECTIONS DRAWER -->
+<div id="nav-drawer">
+  <div class="drawer-header">
+    <div class="drawer-header-top">
+      <div class="drawer-title"><i class="fa fa-route" style="color:var(--accent);margin-right:6px"></i>Directions</div>
+      <button class="drawer-close" onclick="closeNavDrawer()"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div class="drawer-route-row">
+      <div class="drawer-chip drawer-chip-start"><i class="fa fa-circle-dot"></i><span id="navDrawerFrom"></span></div>
+      <div class="drawer-arrow"><i class="fa fa-arrow-right"></i></div>
+      <div class="drawer-chip drawer-chip-end"><i class="fa fa-flag-checkered"></i><span id="navDrawerTo"></span></div>
+    </div>
+    <div class="drawer-summary">
+      <span class="drawer-pill" id="drawerStepCount"></span>
+      <span id="drawerSummaryText"></span>
+    </div>
+    <div class="drawer-progress"><div class="drawer-progress-fill" id="drawerProgressFill" style="width:0%"></div></div>
+  </div>
+  <div class="drawer-steps" id="drawerSteps"></div>
+  <div class="drawer-step-controls">
+    <button class="nav-step-btn" id="btnPrevStep" onclick="navStepPrev()" disabled><i class="fa fa-arrow-left"></i> Prev</button>
+    <div class="nav-step-counter" id="navStepCounter">1 / 1</div>
+    <button class="nav-step-btn" id="btnNextStep" onclick="navStepNext()">Next <i class="fa fa-arrow-right"></i></button>
+  </div>
+</div>
+
+<!-- Loader -->
+<div id="loader">
+  <img src="images/spinner.gif" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif'">
+  <div>Loading Hall…</div>
+</div>
+
+<div id="myModal"  style="display:none"></div>
+<div id="DivBook" style="display:none"></div>
+<input type="hidden" id="HallId" value="8" />
+<input type="hidden" id="ddlArea" value="" />
+<input type="hidden" id="ddlOpenSide" value="" />
+<input type="hidden" id="ddlCategory" value="" />
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<script>
+var jq = jQuery.noConflict();
+
+/* ══════════════════════════════════════════
+   SHARED STATE
+══════════════════════════════════════════ */
+let currentView         = '2d';
+let searchTargetStallId = '';
+// 'id' means highlight/focus must match backend SeatId/StallId only, not StallNo.
+// This makes deep links like ?HallId=23&StallId=14071407 exact and prevents wrong highlight by stall name.
+let searchTargetMatchMode = 'any';
+let allStallData        = [];
+let allUtilData         = [];
+let mapBaseSize         = 2000;
+let currentNavStepIdx   = 0;
+let navStepsData        = [];
+
+// 3D quality is intentionally fixed to Normal for app WebView performance.
+// Do not read old localStorage values because an older HD setting can slow/heat mobile devices.
+let currentQuality = 'normal';
+try { localStorage.removeItem('stallmap_quality'); } catch (e) {}
+
+/* Multi-touch */
+let _multiTouchActive = false;
+let _activeTouches    = 0;
+
+/* Label throttle */
+let _lastLabelUpdate = 0;
+
+/* FPS tracking */
+let _fpsFrames = 0, _fpsLast = performance.now(), _fpsVal = 0;
+
+/* ══════════════════════════════════════════
+   FPS MONITOR
+══════════════════════════════════════════ */
+function trackFPS() {
+  _fpsFrames++;
+  const now = performance.now();
+  if (now - _fpsLast >= 1000) {
+    _fpsVal = _fpsFrames;
+    _fpsFrames = 0;
+    _fpsLast = now;
+    const el = document.getElementById('fps-indicator');
+    if (el && currentView === '3d') {
+      el.textContent = 'FPS: ' + _fpsVal;
+      el.style.color = _fpsVal < 20 ? '#ef4444' : _fpsVal < 40 ? '#f59e0b' : '#94a3b8';
+    }
+  }
+}
+
+/* ══════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════ */
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  document.getElementById('sidebarToggleBtn').classList.add('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+  document.getElementById('sidebarToggleBtn').classList.remove('active');
+}
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  s.classList.contains('open') ? closeSidebar() : openSidebar();
+}
+function swapRoute() {
+  const f = document.getElementById('routeFrom');
+  const t = document.getElementById('routeTo');
+  [f.value, t.value] = [t.value, f.value];
+}
+
+/* ══════════════════════════════════════════
+   NAV DRAWER
+══════════════════════════════════════════ */
+function openNavDrawer() { document.getElementById('nav-drawer').classList.add('open'); }
+function closeNavDrawer() { document.getElementById('nav-drawer').classList.remove('open'); }
+
+/* ══════════════════════════════════════════
+   STATS
+══════════════════════════════════════════ */
+function updateStats() {
+  const total  = allStallData.length;
+  const avail  = allStallData.filter(d => d.blBooked === 'false' && d.blPreBooked !== '1' && d.blTemp === 'false').length;
+  const booked = allStallData.filter(d => d.blBooked !== 'false').length;
+  document.getElementById('statTotal').textContent  = total;
+  document.getElementById('statAvail').textContent  = avail;
+  document.getElementById('statBooked').textContent = booked;
+}
+
+/* ══════════════════════════════════════════
+   GLOBAL SEARCH
+══════════════════════════════════════════ */
+let searchDebounce = null;
+
+function escapeHtmlLocal(value) {
+  return String(value ?? '').replace(/[&<>"']/g, function (char) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
+  });
+}
+function escapeAttrLocal(value) { return escapeHtmlLocal(value); }
+
+function renderSearchResults(query, resultsEl) {
+  if (!query || !allStallData.length) { resultsEl.classList.remove('open'); resultsEl.style.display = 'none'; return; }
+  const q = normalizeStallKey(query);
+  const qc = compactStallKey(query);
+  const score = (d) => {
+    const stall = normalizeStallKey(d.StallNo);
+    const stallC = compactStallKey(d.StallNo);
+    const company = normalizeStallKey(d.txtComName);
+    const companyC = compactStallKey(d.txtComName);
+    const ids = [d.SeatId, d.StallId, d.StallID, d.stallID, d.stallId].map(normalizeStallKey);
+    const idsC = [d.SeatId, d.StallId, d.StallID, d.stallID, d.stallId].map(compactStallKey);
+    if (stall === q || ids.includes(q) || stallC === qc || idsC.includes(qc)) return 100;
+    if (company === q || companyC === qc) return 90;
+    if (stall.startsWith(q) || stallC.startsWith(qc)) return 80;
+    if (company.startsWith(q) || companyC.startsWith(qc)) return 70;
+    if (stall.includes(q) || stallC.includes(qc)) return 60;
+    if (company.includes(q) || companyC.includes(qc)) return 50;
+    if (ids.some(x => x.includes(q)) || idsC.some(x => x.includes(qc))) return 45;
+    return 0;
+  };
+  const results = allStallData
+    .map(d => ({ d, score: score(d) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score || String(a.d.StallNo).localeCompare(String(b.d.StallNo)))
+    .slice(0, 12)
+    .map(x => x.d);
+  const isEmpty = !results.length;
+  const html = isEmpty
+    ? `<div class="search-empty"><i class="fa fa-magnifying-glass" style="display:block;font-size:18px;margin-bottom:4px;opacity:0.4"></i>No results for "${escapeHtmlLocal(query)}"</div>`
+    : results.map(d => {
+        const status = d.blBooked !== 'false' ? 'booked' : (d.blPreBooked === '1' || d.blTemp !== 'false') ? 'hold' : 'available';
+        const statusLabel = status === 'available' ? 'Free' : status === 'booked' ? 'Taken' : 'Hold';
+        const company = d.txtComName || '';
+        return `<div class="search-result-item" onclick="selectStallFromSearch('${escapeAttrLocal(d.SeatId)}','${escapeAttrLocal(d.StallNo)}')">
+          <div class="sri-no">${escapeHtmlLocal(d.StallNo)}</div>
+          <div class="sri-company">${company ? escapeHtmlLocal(company) : '<span style="color:var(--muted)">No exhibitor</span>'}</div>
+          <div class="sri-badge ${status}">${statusLabel}</div>
+        </div>`;
+      }).join('');
+  resultsEl.innerHTML = html;
+  resultsEl.classList.add('open');
+  resultsEl.style.display = 'block';
+}
+
+document.getElementById('globalSearchInput').addEventListener('input', function() {
+  clearTimeout(searchDebounce);
+  const dd = document.getElementById('searchResultsDropdown');
+  searchDebounce = setTimeout(() => renderSearchResults(this.value.trim(), dd), 120);
+});
+document.getElementById('globalSearchInput').addEventListener('focus', function() {
+  const dd = document.getElementById('searchResultsDropdown');
+  if (this.value.trim()) renderSearchResults(this.value.trim(), dd);
+});
+document.addEventListener('click', e => {
+  if (!document.getElementById('headerSearch').contains(e.target)) {
+    document.getElementById('searchResultsDropdown').classList.remove('open');
+    document.getElementById('searchResultsDropdown').style.display = 'none';
+  }
+});
+document.getElementById('sidebarSearchInput').addEventListener('input', function() {
+  clearTimeout(searchDebounce);
+  const res = document.getElementById('sidebarSearchResults');
+  searchDebounce = setTimeout(() => renderSearchResults(this.value.trim(), res), 120);
+});
+
+function selectStallFromSearch(seatId, stallNo) {
+  if (hasActiveRoute && hasActiveRoute()) resetRouteVisualState(true);
+  document.getElementById('searchResultsDropdown').classList.remove('open');
+  document.getElementById('searchResultsDropdown').style.display = 'none';
+  document.getElementById('sidebarSearchResults').style.display = 'none';
+  document.getElementById('globalSearchInput').value = stallNo;
+  document.getElementById('sidebarSearchInput').value = stallNo;
+
+  // Use backend unique id for selection/highlight when available.
+  // StallNo can be duplicated or formatted differently, so it should only be display/fallback.
+  const focusKey = seatId || stallNo;
+  setActiveStallTarget(focusKey, seatId ? 'id' : 'any');
+  closeSidebar();
+  if (currentView === '3d') rebuild3DAndFocus(focusKey);
+  else focusStall2d(focusKey);
+}
+
+function normalizeStallKey(v) {
+  return String(v == null ? '' : v).trim().toLowerCase();
+}
+function compactStallKey(v) {
+  return normalizeStallKey(v).replace(/[^a-z0-9]/g, '');
+}
+function keyMatchesValue(k, target) {
+  const nk = normalizeStallKey(k);
+  const t = normalizeStallKey(target);
+  if (!nk || !t) return false;
+  return nk === t || compactStallKey(k) === compactStallKey(target);
+}
+function getBackendIdKeys(d) {
+  return [d?.SeatId, d?.StallId, d?.StallID, d?.stallID, d?.stallId];
+}
+function matchesStallBackendId(d, target) {
+  if (!d || !target) return false;
+  return getBackendIdKeys(d).some(k => keyMatchesValue(k, target));
+}
+function matchesStallKey(d, target) {
+  if (!d || !target) return false;
+  const keys = [...getBackendIdKeys(d), d.StallNo];
+  return keys.some(k => keyMatchesValue(k, target));
+}
+function getStallPrimaryKey(d) {
+  // Prefer backend IDs for exact selection/highlight. StallNo is only a fallback/display value.
+  return d && (d.SeatId || d.StallId || d.StallID || d.stallID || d.stallId || d.StallNo || '');
+}
+function getStallPrimaryMode(d) {
+  return d && (d.SeatId || d.StallId || d.StallID || d.stallID || d.stallId) ? 'id' : 'any';
+}
+function setActiveStallTarget(target, mode) {
+  searchTargetStallId = String(target || '').trim();
+  searchTargetMatchMode = mode || 'any';
+}
+function findStallForTarget(target) {
+  if (!target) return null;
+  if (searchTargetMatchMode === 'id') {
+    return allStallData.find(s => matchesStallBackendId(s, target)) || allStallData.find(s => matchesStallKey(s, target));
+  }
+  return allStallData.find(s => matchesStallKey(s, target));
+}
+function isActive(d) {
+  if (!searchTargetStallId) return false;
+  return searchTargetMatchMode === 'id'
+    ? matchesStallBackendId(d, searchTargetStallId)
+    : matchesStallKey(d, searchTargetStallId);
+}
+
+/* ══════════════════════════════════════════
+   2D CANVAS ENGINE
+══════════════════════════════════════════ */
+const canvas2d = document.getElementById('canvas-2d');
+const ctx      = canvas2d.getContext('2d');
+
+let cam2 = { x: 0, y: 0, zoom: 1 };
+let isPanning = false, isDragging2d = false;
+let ptrDown2d = { x: 0, y: 0 }, camStart = { x: 0, y: 0 };
+let lastPinchDist = null;
+let routePath2d = null, routeStart2d = null, routeEnd2d = null;
+let raf2dId = null;
+
+const C = {
+  available: '#059669', booked: '#dc2626', hold: '#d97706',
+  grayHold: '#94a3b8', active: '#1d4ed8', special: '#34d399', path: '#10b981'
+};
+
+function stallColor(d, act) {
+  if (act) return C.active;
+  if (d.blBooked !== 'false') return d.blPreBooked === '1' ? C.hold : C.booked;
+  if (d.blPreBooked === '1' || d.blTemp !== 'false') return C.grayHold;
+  if (d.sStatus === '1') return C.special;
+  return C.available;
+}
+
+function resize2d() {
+  canvas2d.width  = window.innerWidth;
+  canvas2d.height = window.innerHeight - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h'));
+}
+
+function w2s(wx, wy) {
+  return { x: (wx - cam2.x) * cam2.zoom + canvas2d.width / 2, y: (wy - cam2.y) * cam2.zoom + canvas2d.height / 2 };
+}
+function s2w(sx, sy) {
+  return { x: (sx - canvas2d.width / 2) / cam2.zoom + cam2.x, y: (sy - canvas2d.height / 2) / cam2.zoom + cam2.y };
+}
+function zoom2d(factor) {
+  const cx = canvas2d.width / 2, cy = canvas2d.height / 2;
+  const w = s2w(cx, cy);
+  cam2.zoom = Math.min(10, Math.max(0.04, cam2.zoom * factor));
+  const wn = s2w(cx, cy);
+  cam2.x += w.x - wn.x;
+  cam2.y += w.y - wn.y;
+}
+
+function zoom3d(factor) {
+  if (!camera3 || !controls3) return;
+  const target = controls3.target.clone();
+  const offset = camera3.position.clone().sub(target);
+  const currentDist = offset.length() || 1;
+  const minDist = controls3.minDistance || 50;
+  const maxDist = controls3.maxDistance || 12000;
+  const nextDist = Math.max(minDist, Math.min(maxDist, currentDist / factor));
+  offset.setLength(nextDist);
+  camera3.position.copy(target).add(offset);
+  controls3.update();
+}
+function fitCamera3d() {
+  if (!camera3 || !controls3 || !stallsGroup3 || !stallsGroup3.children.length) return;
+  const box = new THREE.Box3().setFromObject(stallsGroup3);
+  if (!box || !isFinite(box.min.x) || !isFinite(box.max.x)) return;
+  const ctr = box.getCenter(new THREE.Vector3());
+  const sz = box.getSize(new THREE.Vector3());
+  const base = Math.max(sz.x, sz.z, 450);
+  const dist = base * (innerWidth <= 768 ? 1.15 : 0.95);
+  controls3.target.copy(ctr);
+  camera3.position.set(ctr.x, Math.max(320, dist * 0.95), ctr.z + Math.max(520, dist * 0.78));
+  controls3.update();
+}
+function zoomMap(factor) {
+  if (currentView === '3d') zoom3d(factor);
+  else zoom2d(factor);
+}
+function resetMapView() {
+  if (currentView === '3d') fitCamera3d();
+  else fitCamera2d();
+}
+
+function calcLabelFontSize(stallW_px, stallH_px, labelText) {
+  if (stallW_px < 8 || stallH_px < 8) return 0;
+  const maxByWidth  = (stallW_px * 0.72) / (labelText.length * 0.6);
+  const maxByHeight = stallH_px * 0.42;
+  const size = Math.min(maxByWidth, maxByHeight, 13);
+  return Math.max(5.5, size);
+}
+
+function drawStall(d, color, act) {
+  const s  = w2s(d.dLeft, d.dTop);
+  const sw = d.dWidth * cam2.zoom, sh = d.dHeight * cam2.zoom;
+
+  if (act) {
+    const pulse = 0.55 + 0.45 * Math.sin(Date.now() / 350);
+    ctx.fillStyle = 'rgba(29,78,216,0.18)';
+    ctx.fillRect(s.x, s.y, sw, sh);
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(s.x, s.y, sw, Math.max(3, sh * 0.08));
+    ctx.strokeStyle = '#1d4ed8';
+    ctx.lineWidth = Math.max(2, 2.5 * cam2.zoom);
+    ctx.globalAlpha = pulse;
+    ctx.strokeRect(s.x, s.y, sw, sh);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(29,78,216,0.15)';
+    ctx.lineWidth = Math.max(4, 5 * cam2.zoom);
+    ctx.strokeRect(s.x - 3, s.y - 3, sw + 6, sh + 6);
+    if (sw > 8 && sh > 8) {
+      const fs = calcLabelFontSize(sw, sh, d.StallNo);
+      if (fs >= 5.5) {
+        ctx.font = `800 ${fs}px Inter,Arial,sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1.5, fs * .35);
+        ctx.strokeText(d.StallNo, s.x + sw / 2, s.y + sh / 2);
+        ctx.fillStyle = '#1d4ed8';
+        ctx.fillText(d.StallNo, s.x + sw / 2, s.y + sh / 2);
+      }
+    }
+    return;
+  }
+
+  ctx.fillStyle = color + '1a';
+  ctx.fillRect(s.x, s.y, sw, sh);
+  ctx.fillStyle = color;
+  ctx.fillRect(s.x, s.y, sw, Math.max(2, sh * 0.06));
+
+  const pos = (d.Positions || '').toLowerCase();
+  const oT = pos.includes('top'), oB = pos.includes('bottom'),
+        oL = pos.includes('left'), oR = pos.includes('right');
+  const lw = Math.max(1.5, cam2.zoom * 1.4);
+  ctx.lineWidth = lw; ctx.setLineDash([]);
+  ctx.strokeStyle = color;
+  ctx.beginPath();
+  if (!oT) { ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + sw, s.y); }
+  if (!oB) { ctx.moveTo(s.x, s.y + sh); ctx.lineTo(s.x + sw, s.y + sh); }
+  if (!oL) { ctx.moveTo(s.x, s.y); ctx.lineTo(s.x, s.y + sh); }
+  if (!oR) { ctx.moveTo(s.x + sw, s.y); ctx.lineTo(s.x + sw, s.y + sh); }
+  ctx.stroke();
+
+  if (oT || oB || oL || oR) {
+    ctx.strokeStyle = color + '55';
+    ctx.setLineDash([Math.max(2, sw * .06), Math.max(2, sw * .04)]);
+    ctx.beginPath();
+    if (oT) { ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + sw, s.y); }
+    if (oB) { ctx.moveTo(s.x, s.y + sh); ctx.lineTo(s.x + sw, s.y + sh); }
+    if (oL) { ctx.moveTo(s.x, s.y); ctx.lineTo(s.x, s.y + sh); }
+    if (oR) { ctx.moveTo(s.x + sw, s.y); ctx.lineTo(s.x + sw, s.y + sh); }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  if (sw > 6 && sh > 6) {
+    const fs = calcLabelFontSize(sw, sh, d.StallNo);
+    if (fs >= 5.5) {
+      ctx.font = `700 ${fs}px Inter,Arial,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.save();
+      ctx.rect(s.x + 1, s.y + 1, sw - 2, sh - 2);
+      ctx.clip();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1.2, fs * .3);
+      ctx.strokeText(d.StallNo, s.x + sw / 2, s.y + sh / 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(d.StallNo, s.x + sw / 2, s.y + sh / 2);
+      ctx.restore();
+    }
+  }
+}
+
+function drawUtil(d) {
+  const s  = w2s(d.dLeft, d.dTop);
+  const sw = d.dWidth * cam2.zoom, sh = d.dHeight * cam2.zoom;
+  ctx.fillStyle = '#f8fafc'; ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.setLineDash([]);
+  ctx.fillRect(s.x, s.y, sw, sh); ctx.strokeRect(s.x, s.y, sw, sh);
+  if (sw > 8 && sh > 6) {
+    const fs = calcLabelFontSize(sw, sh, d.Text);
+    if (fs >= 5.5) {
+      ctx.font = `700 ${fs}px Inter,Arial,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.save();
+      ctx.rect(s.x + 1, s.y + 1, sw - 2, sh - 2);
+      ctx.clip();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.strokeText(d.Text, s.x + sw / 2, s.y + sh / 2);
+      ctx.fillStyle = '#dc2626';
+      ctx.fillText(d.Text, s.x + sw / 2, s.y + sh / 2);
+      ctx.restore();
+    }
+  }
+}
+
+function drawRoute2d() {
+  if (!routePath2d || routePath2d.length < 2) return;
+  const pts = routePath2d.map(p => w2s(p.x, p.y));
+
+  // Soft base glow
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = Math.max(4, 7 * cam2.zoom);
+  ctx.globalAlpha = .14;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.stroke();
+
+  // Main animated route line
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = Math.max(2.2, 3 * cam2.zoom);
+  ctx.strokeStyle = '#10b981';
+  const dash = Math.max(8, 12 * cam2.zoom), gap = Math.max(5, 7 * cam2.zoom);
+  ctx.setLineDash([dash, gap]);
+  ctx.lineDashOffset = -(Date.now() / 34 % (dash + gap));
+  ctx.beginPath();
+  pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Moving dots on the route for a premium live-navigation feel.
+  const total = routePath2d.reduce((sum, p, i) => i ? sum + Math.hypot(p.x - routePath2d[i - 1].x, p.y - routePath2d[i - 1].y) : 0, 0);
+  if (total > 0) {
+    const now = Date.now() * 0.055;
+    for (let d = 0; d < Math.min(4, Math.max(2, Math.floor(total / 180))); d++) {
+      const pos = pointOnRoute2d((now + d * total / 4) % total);
+      if (!pos) continue;
+      const sp = w2s(pos.x, pos.y);
+      ctx.beginPath();
+      ctx.fillStyle = '#ffffff';
+      ctx.arc(sp.x, sp.y, Math.max(2.5, 3.8 * cam2.zoom), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  const mkr = (p, clr, label) => {
+    ctx.fillStyle = clr; ctx.beginPath(); ctx.arc(p.x, p.y, 7 * cam2.zoom, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+    if (cam2.zoom > .4) {
+      const fs = Math.min(10, 9 * cam2.zoom);
+      ctx.font = `800 ${fs}px Inter,Arial,sans-serif`;
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(15,23,42,.88)';
+      ctx.fillRect(p.x - tw / 2 - 6, p.y - 12 * cam2.zoom - fs - 2, tw + 12, fs + 7);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(label, p.x, p.y - 12 * cam2.zoom);
+    }
+  };
+  if (routeStart2d) { const sp = w2s(routeStart2d.x, routeStart2d.y); mkr(sp, '#059669', 'START'); }
+  if (routeEnd2d)   { const ep = w2s(routeEnd2d.x, routeEnd2d.y);     mkr(ep, '#dc2626', 'END'); }
+}
+
+function pointOnRoute2d(distanceOnPath) {
+  if (!routePath2d || routePath2d.length < 2) return null;
+  let remaining = distanceOnPath;
+  for (let i = 1; i < routePath2d.length; i++) {
+    const a = routePath2d[i - 1], b = routePath2d[i];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len <= 0) continue;
+    if (remaining <= len) {
+      const t = remaining / len;
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    }
+    remaining -= len;
+  }
+  return routePath2d[routePath2d.length - 1];
+}
+
+function render2dFrame() {
+  ctx.clearRect(0, 0, canvas2d.width, canvas2d.height);
+  const step = 50;
+  ctx.strokeStyle = 'rgba(203,213,225,35)'; ctx.lineWidth = .5; ctx.setLineDash([]);
+  const tl = s2w(0, 0), br = s2w(canvas2d.width, canvas2d.height);
+  for (let gx = Math.floor(tl.x / step) * step; gx < br.x; gx += step) {
+    const sx = w2s(gx, 0).x; ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, canvas2d.height); ctx.stroke();
+  }
+  for (let gy = Math.floor(tl.y / step) * step; gy < br.y; gy += step) {
+    const sy = w2s(0, gy).y; ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(canvas2d.width, sy); ctx.stroke();
+  }
+  allUtilData.forEach(d => drawUtil(d));
+  allStallData.forEach(d => { const act = isActive(d); drawStall(d, stallColor(d, act), act); });
+  drawRoute2d();
+}
+
+function draw2d() {
+  // Guard against multiple canvas animation loops after hall reloads or view switches.
+  if (raf2dId !== null) return;
+
+  const loop = () => {
+    if (currentView !== '2d') { raf2dId = null; return; }
+    render2dFrame();
+    raf2dId = requestAnimationFrame(loop);
+  };
+  loop();
+}
+function hitTest(sx, sy) {
+  const w = s2w(sx, sy);
+  for (let i = allStallData.length - 1; i >= 0; i--) {
+    const d = allStallData[i];
+    if (w.x >= d.dLeft && w.x <= d.dLeft + d.dWidth && w.y >= d.dTop && w.y <= d.dTop + d.dHeight)
+      return { type: 'stall', data: d };
+  }
+  for (let i = allUtilData.length - 1; i >= 0; i--) {
+    const d = allUtilData[i];
+    if (w.x >= d.dLeft && w.x <= d.dLeft + d.dWidth && w.y >= d.dTop && w.y <= d.dTop + d.dHeight)
+      return { type: 'util', data: d };
+  }
+  return null;
+}
+
+canvas2d.addEventListener('pointerdown', e => {
+  if (currentView !== '2d') return;
+  ptrDown2d = { x: e.clientX, y: e.clientY };
+  isPanning = true; isDragging2d = false;
+  camStart = { x: cam2.x, y: cam2.y };
+  canvas2d.setPointerCapture(e.pointerId);
+});
+canvas2d.addEventListener('pointermove', e => {
+  if (currentView !== '2d') return;
+  if (isPanning) {
+    const dx = e.clientX - ptrDown2d.x, dy = e.clientY - ptrDown2d.y;
+    if (Math.hypot(dx, dy) > 8) isDragging2d = true;
+    cam2.x = camStart.x - dx / cam2.zoom;
+    cam2.y = camStart.y - dy / cam2.zoom;
+  }
+});
+canvas2d.addEventListener('pointerup', e => {
+  if (currentView !== '2d') return;
+  isPanning = false;
+  if (!isDragging2d && !_multiTouchActive) {
+    const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h'));
+    const hit = hitTest(e.clientX, e.clientY - headerH);
+    if (hit && hit.type === 'stall') showStallDialog(hit.data);
+  }
+  isDragging2d = false;
+});
+canvas2d.addEventListener('wheel', e => {
+  if (currentView !== '2d') return;
+  e.preventDefault();
+  const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h'));
+  const w = s2w(e.clientX, e.clientY - headerH);
+  const delta = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+  const factor = Math.pow(0.999, delta);
+  cam2.zoom = Math.min(10, Math.max(0.04, cam2.zoom * factor));
+  const wn = s2w(e.clientX, e.clientY - headerH);
+  cam2.x += w.x - wn.x;
+  cam2.y += w.y - wn.y;
+}, { passive: false });
+let lastPinchMid = null;
+
+function touchPointToCanvas(touch) {
+  const rect = canvas2d.getBoundingClientRect();
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+function getTouchMidpoint(touches) {
+  const a = touchPointToCanvas(touches[0]);
+  const b = touchPointToCanvas(touches[1]);
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+function getTouchDistance(touches) {
+  const a = touchPointToCanvas(touches[0]);
+  const b = touchPointToCanvas(touches[1]);
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+canvas2d.addEventListener('touchstart', e => {
+  _activeTouches = e.touches.length;
+  if (e.touches.length >= 2) {
+    e.preventDefault();
+    _multiTouchActive = true;
+    isPanning = false;
+    isDragging2d = true;
+    lastPinchDist = getTouchDistance(e.touches);
+    lastPinchMid = getTouchMidpoint(e.touches);
+  }
+}, { passive: false });
+
+canvas2d.addEventListener('touchmove', e => {
+  _activeTouches = e.touches.length;
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    _multiTouchActive = true;
+    isPanning = false;
+    isDragging2d = true;
+
+    const newDist = getTouchDistance(e.touches);
+    const newMid = getTouchMidpoint(e.touches);
+
+    if (lastPinchDist && newDist > 0 && lastPinchMid) {
+      // Keep the map point under the users' finger midpoint stable while zooming.
+      // This removes the scattered/jumping feel on mobile pinch zoom.
+      const worldBefore = s2w(lastPinchMid.x, lastPinchMid.y);
+      const rawFactor = newDist / lastPinchDist;
+      const factor = Math.max(0.82, Math.min(1.22, rawFactor));
+      cam2.zoom = Math.min(10, Math.max(0.04, cam2.zoom * factor));
+      const worldAfter = s2w(newMid.x, newMid.y);
+      cam2.x += worldBefore.x - worldAfter.x;
+      cam2.y += worldBefore.y - worldAfter.y;
+    }
+
+    lastPinchDist = newDist;
+    lastPinchMid = newMid;
+  }
+}, { passive: false });
+
+canvas2d.addEventListener('touchend', e => {
+  _activeTouches = e.touches.length;
+  if (e.touches.length >= 2) {
+    lastPinchDist = getTouchDistance(e.touches);
+    lastPinchMid = getTouchMidpoint(e.touches);
+    return;
+  }
+  if (e.touches.length === 0) {
+    lastPinchDist = null;
+    lastPinchMid = null;
+    _activeTouches = 0;
+    isPanning = false;
+    setTimeout(() => { _multiTouchActive = false; }, 160);
+  }
+}, { passive: false });
+
+function fitCamera2d() {
+  const all = [...allStallData, ...allUtilData]; if (!all.length) return;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  all.forEach(d => { x0 = Math.min(x0, d.dLeft); x1 = Math.max(x1, d.dLeft + d.dWidth); y0 = Math.min(y0, d.dTop); y1 = Math.max(y1, d.dTop + d.dHeight); });
+  cam2.x = (x0 + x1) / 2; cam2.y = (y0 + y1) / 2;
+  cam2.zoom = Math.min(canvas2d.width / ((x1 - x0) * 1.1), canvas2d.height / ((y1 - y0) * 1.1));
+}
+
+function focusStall2d(sid) {
+  const d = findStallForTarget(sid);
+  if (!d) return false;
+  setActiveStallTarget(getStallPrimaryKey(d), getStallPrimaryMode(d));
+  cam2.x = d.dLeft + d.dWidth / 2;
+  cam2.y = d.dTop  + d.dHeight / 2;
+  cam2.zoom = window.innerWidth <= 768 ? 2.8 : 4;
+  if (currentView === '2d' && typeof render2dFrame === 'function') render2dFrame();
+  return true;
+}
+
+/* ══════════════════════════════════════════
+   3D ENGINE SETUP
+══════════════════════════════════════════ */
+let scene, camera3, renderer3, labelRenderer3, controls3, raycaster3, mouse3;
+let stallsGroup3 = new THREE.Group();
+let activeStallPos3 = null;
+let isDragging3 = false, ptrDown3 = { x: 0, y: 0 };
+let pathMesh3 = null, startMark3 = null, endMark3 = null;
+let pathAnimDots3 = [], routeWorldPts3 = [], routeTotalLen3 = 0;
+let routeHighlightedGroups3 = new Set();
+let startGroup3 = null, endGroup3 = null;
+// Keep live references to 3D stall labels so font/scale can be fitted to the actual projected stall size.
+let stallLabel3DRefs = [];
+
+/* ── Shared geometries (reused across all stalls) ── */
+const geo3Floor    = new THREE.BoxGeometry(1, 1, 1); // scaled per stall
+const geo3Wall     = new THREE.BoxGeometry(1, 1, 1);
+const geo3TTop     = new THREE.CylinderGeometry(3.5, 3.5, .4, 24);
+const geo3TLeg     = new THREE.CylinderGeometry(.3, .3, 6, 12);
+const geo3TBase    = new THREE.CylinderGeometry(1.8, 1.8, .2, 24);
+const geo3SSeat    = new THREE.CylinderGeometry(1.4, 1.4, .4, 24);
+const geo3SLeg     = new THREE.CylinderGeometry(.2, .2, 4.5, 12);
+const geo3SBase    = new THREE.CylinderGeometry(1.2, 1.2, .2, 24);
+const geo3DB       = new THREE.BoxGeometry(8, 7.5, 3);
+const geo3DTop     = new THREE.BoxGeometry(8.5, .5, 3.5);
+const geo3Plant    = new THREE.ConeGeometry(3.5, 12, 8);
+const geo3Pot      = new THREE.CylinderGeometry(2, 1.5, 3, 8);
+const geo3Counter  = new THREE.BoxGeometry(12, 8, 4);
+const geo3CounterTop = new THREE.BoxGeometry(13, .6, 5);
+
+/* ── Materials ── */
+const mat3Metal = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: .3, metalness: .8 });
+const mat3Stool = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+const mat3Table = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: .95 });
+const mat3DeskA = new THREE.MeshLambertMaterial({ color: 0x334155 });
+const mat3Desk  = new THREE.MeshLambertMaterial({ color: 0xffffff });
+const mat3Plant = new THREE.MeshLambertMaterial({ color: 0x16a34a });
+const mat3Pot   = new THREE.MeshLambertMaterial({ color: 0x78350f });
+const mat3CounterWhite = new THREE.MeshLambertMaterial({ color: 0xfafafa });
+
+// HD materials
+let mat3FloorHD = null;
+let hdSpotLights = [];
+let hdFloorMesh  = null;
+
+function makeConeGeo() {
+  const g = new THREE.ConeGeometry(8, 20, 16);
+  g.translate(0, -10, 0); g.rotateX(Math.PI); return g;
+}
+
+function get3DViewportSize() {
+  const container = document.getElementById('webgl-container');
+  return {
+    w: container?.clientWidth || window.innerWidth,
+    h: container?.clientHeight || Math.max(1, window.innerHeight - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')))
+  };
+}
+
+function resize3d() {
+  if (!renderer3 || !camera3 || !labelRenderer3) return;
+  const { w, h } = get3DViewportSize();
+  camera3.aspect = w / Math.max(1, h);
+  camera3.updateProjectionMatrix();
+  renderer3.setSize(w, h, false);
+  labelRenderer3.setSize(w, h);
+}
+
+function init3D() {
+  const container = document.getElementById('webgl-container');
+  const isMobile  = window.innerWidth <= 768;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf0f2f5);
+  scene.fog = new THREE.FogExp2(0xf0f2f5, isMobile ? 0.00008 : 0.00012);
+  scene.add(stallsGroup3);
+
+  const { w: viewW, h: viewH } = get3DViewportSize();
+  camera3 = new THREE.PerspectiveCamera(45, viewW / Math.max(1, viewH), 1, 20000);
+  camera3.position.set(1000, 1500, 1000);
+
+  renderer3 = new THREE.WebGLRenderer({
+    antialias: !isMobile,
+    powerPreference: 'high-performance',
+    precision: isMobile ? 'mediump' : 'highp'
+  });
+  renderer3.setSize(viewW, viewH, false);
+  renderer3.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5));
+  renderer3.shadowMap.enabled = false;
+  container.appendChild(renderer3.domElement);
+  renderer3.domElement.style.cssText = 'position:absolute;top:0;left:0;display:none';
+
+  labelRenderer3 = new THREE.CSS2DRenderer();
+  labelRenderer3.setSize(viewW, viewH);
+  labelRenderer3.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:10;display:none';
+  container.appendChild(labelRenderer3.domElement);
+
+  controls3 = new THREE.OrbitControls(camera3, renderer3.domElement);
+  controls3.enableDamping = true;
+  controls3.dampingFactor = 0.06;
+  controls3.maxPolarAngle = Math.PI / 2 - 0.04;
+  controls3.minDistance   = 50;
+  controls3.maxDistance   = 12000;
+  controls3.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
+  // Base lighting
+  const hemi = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.75);
+  hemi.name = 'hemi';
+  scene.add(hemi);
+
+  const dl = new THREE.DirectionalLight(0xffffff, 0.5);
+  dl.position.set(1000, 2000, 500);
+  dl.name = 'dirMain';
+  scene.add(dl);
+
+  // Floor
+  const flrGeo = new THREE.PlaneGeometry(12000, 12000);
+  const flrMat = new THREE.MeshLambertMaterial({ color: 0xf1f5f9 });
+  const flr = new THREE.Mesh(flrGeo, flrMat);
+  flr.rotation.x = -Math.PI / 2;
+  flr.name = 'floor';
+  scene.add(flr);
+  hdFloorMesh = flr;
+
+  const grid = new THREE.GridHelper(12000, 240, 0xcbd5e1, 0xe2e8f0);
+  grid.position.y = 0.15; grid.material.opacity = 0.35; grid.material.transparent = true;
+  grid.name = 'grid';
+  scene.add(grid);
+
+  raycaster3 = new THREE.Raycaster();
+  mouse3 = new THREE.Vector2();
+
+  const c = renderer3.domElement;
+  c.addEventListener('pointerdown', e => { ptrDown3 = { x: e.clientX, y: e.clientY }; isDragging3 = false; });
+  c.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - ptrDown3.x, e.clientY - ptrDown3.y) > 8) isDragging3 = true; });
+  c.addEventListener('pointerup',   e => { if (!isDragging3 && !_multiTouchActive) onCk3(e); });
+  c.addEventListener('touchstart',  e => { if (e.touches.length >= 2) { _multiTouchActive = true; isDragging3 = true; } }, { passive: true });
+  c.addEventListener('touchend',    e => { if (e.touches.length === 0) setTimeout(() => { _multiTouchActive = false; }, 120); }, { passive: true });
+
+  // Resize is handled by the single global resize listener in init.
+
+  // Apply saved quality
+  applyQualityLighting(currentQuality);
+  animate3();
+}
+
+function animate3() {
+  requestAnimationFrame(animate3);
+  if (currentView !== '3d') return; // Do not burn GPU while 2D view is active/hidden in WebView.
+  trackFPS();
+  controls3.update();
+
+  const now = Date.now();
+  const isMobile = window.innerWidth <= 768;
+  if (!isMobile || now - _lastLabelUpdate > 80) {
+    _lastLabelUpdate = now;
+    update3DLabelSizing();
+  }
+
+  if (startMark3 && endMark3) {
+    [startMark3, endMark3].forEach(m => { m.position.y = 25 + Math.sin(now * .003) * 4; m.rotation.y += .02; });
+  }
+
+  updateRouteAnimation3(now);
+
+  // HD LED glow pulse on spotlights
+  if (currentQuality === 'hd') {
+    hdSpotLights.forEach((sl, i) => {
+      sl.intensity = 1.2 + 0.3 * Math.sin(now * 0.0008 + i * 1.2);
+    });
+  }
+
+  renderer3.render(scene, camera3);
+  labelRenderer3.render(scene, camera3);
+}
+
+function clampNum(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function projectedWorldSpanPx3(center, span, axis) {
+  if (!camera3 || !renderer3 || !center || !Number.isFinite(span) || span <= 0) return 0;
+  const w = Math.max(1, labelRenderer3?.domElement?.clientWidth || renderer3.domElement.clientWidth || window.innerWidth || 1);
+  const h = Math.max(1, labelRenderer3?.domElement?.clientHeight || renderer3.domElement.clientHeight || window.innerHeight || 1);
+  const a = center.clone();
+  const b = center.clone();
+  if (axis === 'x') { a.x -= span / 2; b.x += span / 2; }
+  else { a.z -= span / 2; b.z += span / 2; }
+  a.project(camera3); b.project(camera3);
+  const ax = (a.x + 1) * 0.5 * w, ay = (-a.y + 1) * 0.5 * h;
+  const bx = (b.x + 1) * 0.5 * w, by = (-b.y + 1) * 0.5 * h;
+  return Math.hypot(bx - ax, by - ay);
+}
+
+function update3DLabelSizing() {
+  if (!camera3 || !controls3) return;
+  const dist = camera3.position.distanceTo(controls3.target);
+  // Inverse zoom behaviour: zoom in => bigger labels, zoom out => smaller labels.
+  const zoomScale = clampNum((mapBaseSize * 0.52) / Math.max(1, dist), 0.32, 1.75);
+  const globalOpacity = dist > mapBaseSize * 1.7 ? 0.5 : dist > mapBaseSize * 1.25 ? 0.72 : 1;
+
+  const reusableCenter = new THREE.Vector3();
+  stallLabel3DRefs = stallLabel3DRefs.filter(ref => ref && ref.element && ref.label && ref.label.parent);
+  stallLabel3DRefs.forEach(ref => {
+    const el = ref.element;
+    const data = ref.data || {};
+    const label = String(data.StallNo || el.textContent || '').trim();
+    const len = Math.max(1, label.length);
+    const stallW = Math.max(1, Number(data.dWidth) || 40);
+    const stallH = Math.max(1, Number(data.dHeight) || 40);
+
+    ref.label.getWorldPosition(reusableCenter);
+    const screenW = projectedWorldSpanPx3(reusableCenter, stallW, 'x');
+    const screenH = projectedWorldSpanPx3(reusableCenter, stallH, 'z');
+    const availableW = Math.max(12, screenW * 0.76);
+    const availableH = Math.max(8, screenH * 0.46);
+
+    // Estimate rendered label size at 14px base font + horizontal padding, then scale to fit the booth.
+    const baseTextW = Math.max(18, len * 8.2 + 12);
+    const baseTextH = 20;
+    const fitScale = Math.min(availableW / baseTextW, availableH / baseTextH);
+    const scale = clampNum(Math.min(zoomScale, fitScale), 0.28, 1.8);
+
+    el.style.display = scale < 0.22 ? 'none' : 'block';
+    el.style.opacity = String(Math.max(0.35, Math.min(globalOpacity, fitScale < 0.34 ? 0.55 : 1)));
+    el.style.transform = `translateZ(0) scale(${scale})`;
+    el.style.maxWidth = Math.max(22, Math.floor(availableW / Math.max(0.28, scale))) + 'px';
+  });
+
+  const utilScale = clampNum(zoomScale, 0.3, 1.25);
+  document.querySelectorAll('.util-label').forEach(l => {
+    l.style.display = 'block';
+    l.style.opacity = globalOpacity;
+    l.style.transform = `translateZ(0) scale(${utilScale})`;
+  });
+
+  const pinScale = clampNum((mapBaseSize * .6) / Math.max(1, dist), .38, 1.2);
+  document.querySelectorAll('.active-pin,.route-badge').forEach(p => p.style.transform = `translateZ(0) scale(${pinScale})`);
+}
+
+/* ══════════════════════════════════════════
+   QUALITY MODE SYSTEM
+══════════════════════════════════════════ */
+function applyQualityLighting(quality) {
+  quality = 'normal'; // locked: no Basic/HD switching in WebView build
+  // Remove old HD lights
+  hdSpotLights.forEach(sl => scene && scene.remove(sl));
+  hdSpotLights = [];
+
+  const hemi = scene.getObjectByName('hemi');
+  const dl   = scene.getObjectByName('dirMain');
+  const grid = scene.getObjectByName('grid');
+
+  if (quality === 'basic') {
+    renderer3.setPixelRatio(1.0);
+    renderer3.shadowMap.enabled = false;
+    if (hemi) hemi.intensity = 1.0;
+    if (dl)   dl.intensity   = 0.3;
+    if (grid) grid.visible   = false;
+    if (hdFloorMesh) hdFloorMesh.material.color.setHex(0xf1f5f9);
+    scene.fog = new THREE.FogExp2(0xf0f2f5, 0.0002);
+
+  } else if (quality === 'normal') {
+    const isMobile = window.innerWidth <= 768;
+    renderer3.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5));
+    renderer3.shadowMap.enabled = false;
+    if (hemi) hemi.intensity = 0.8;
+    if (dl)   { dl.intensity = 0.5; dl.position.set(1000, 2000, 500); }
+    if (grid) grid.visible   = true;
+    if (hdFloorMesh) hdFloorMesh.material.color.setHex(0xf1f5f9);
+    scene.fog = new THREE.FogExp2(0xf0f2f5, 0.00012);
+
+  } else if (quality === 'hd') {
+    const isMobile = window.innerWidth <= 768;
+    renderer3.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2.0));
+    renderer3.shadowMap.enabled = true;
+    renderer3.shadowMap.type    = THREE.PCFSoftShadowMap;
+    if (hemi) hemi.intensity = 0.6;
+    if (dl)   {
+      dl.intensity = 0.4;
+      dl.castShadow = true;
+      dl.shadow.mapSize.width = 2048;
+      dl.shadow.mapSize.height = 2048;
+    }
+    if (grid) grid.visible = true;
+    // Glossy floor
+    if (hdFloorMesh) {
+      hdFloorMesh.material = new THREE.MeshStandardMaterial({
+        color: 0xe8ecf0, roughness: 0.15, metalness: 0.1,
+        envMapIntensity: 0.5
+      });
+    }
+    // Add coloured spotlights for premium feel
+    const spotColors = [0xffeedd, 0xddeeff, 0xffffff, 0xeeffdd];
+    const spotPositions = [
+      [-500, 600, -500], [500, 600, -500],
+      [-500, 600, 500],  [500, 600, 500]
+    ];
+    spotPositions.forEach((pos, i) => {
+      const sl = new THREE.SpotLight(spotColors[i], 1.2, 3000, Math.PI / 8, 0.5, 1.5);
+      sl.position.set(...pos);
+      sl.castShadow = false; // perf
+      scene.add(sl);
+      hdSpotLights.push(sl);
+    });
+    scene.fog = new THREE.FogExp2(0xeef2f7, 0.00008);
+  }
+}
+
+function updateQualityUI(quality) {
+  // Quality UI removed. Keep this function as a safe no-op for older code paths.
+  currentQuality = 'normal';
+}
+
+function setQualityMode(quality) {
+  // Quality selector removed. 3D always stays in Normal mode for predictable WebView performance.
+  currentQuality = 'normal';
+  applyQualityLighting('normal');
+}
+function clearStallGroup3() {
+  stallLabel3DRefs = [];
+  while (stallsGroup3.children.length) {
+    const o = stallsGroup3.children[0];
+    o.traverse(c => {
+      if (c.isMesh) {
+        if (c.geometry && !isSharedGeo(c.geometry)) c.geometry.dispose();
+        if (Array.isArray(c.material)) c.material.forEach(m => { if (!isSharedMat(m)) m.dispose(); });
+        else if (c.material && !isSharedMat(c.material)) c.material.dispose();
+      }
+      if (c.isCSS2DObject && c.element?.parentNode) c.element.parentNode.removeChild(c.element);
+    });
+    stallsGroup3.remove(o);
+  }
+}
+
+const _sharedGeos = new Set([geo3TTop, geo3TLeg, geo3TBase, geo3SSeat, geo3SLeg, geo3SBase, geo3DB, geo3DTop, geo3Plant, geo3Pot, geo3Counter, geo3CounterTop]);
+const _sharedMats = new Set([mat3Metal, mat3Stool, mat3Table, mat3DeskA, mat3Desk, mat3Plant, mat3Pot, mat3CounterWhite]);
+function isSharedGeo(g) { return _sharedGeos.has(g); }
+function isSharedMat(m) { return _sharedMats.has(m); }
+
+/* ══════════════════════════════════════════
+   3D STALL BUILDER — quality-aware
+══════════════════════════════════════════ */
+function stColor3(d, act) {
+  if (act) return 0x1d4ed8;
+  if (d.blBooked !== 'false') return d.blPreBooked === '1' ? 0xf59e0b : 0xef4444;
+  if (d.blPreBooked === '1' || d.blTemp !== 'false') return 0x94a3b8;
+  if (d.sStatus === '1') return 0x34d399;
+  return 0x059669;
+}
+
+function stallOpacity(d, act) {
+  // IMPROVEMENT 2: Stronger opacity — no more invisible stalls
+  if (act) return 0.92;
+  if (d.blBooked !== 'false') return 0.88; // booked: more solid
+  if (d.blPreBooked === '1' || d.blTemp !== 'false') return 0.70; // hold: moderate
+  return 0.75; // available: semi-transparent but clearly visible
+}
+
+function build3DStall(data) {
+  const vH = 28, wT = 2, fH = 4, flT = 2;
+  const pW = data.dWidth, pH = data.dHeight;
+  const act = isActive(data);
+  const col = stColor3(data, act);
+  const opacity = stallOpacity(data, act);
+
+  const grp = new THREE.Group();
+  grp.userData = { ...data, _isStall: true };
+  grp.position.set(data.dLeft + pW / 2, 0, data.dTop + pH / 2);
+
+  const mk = (geo, mat, x, y, z, rx, ry, rz) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    if (rx) m.rotation.x = rx;
+    if (ry) m.rotation.y = ry;
+    if (rz) m.rotation.z = rz;
+    m.userData = { ...data, _isStall: true };
+    if (currentQuality === 'hd') { m.castShadow = true; m.receiveShadow = true; }
+    grp.add(m); return m;
+  };
+
+  // ── BASIC: just coloured floor slab ──
+  if (currentQuality === 'basic') {
+    const flrMat = new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: Math.min(opacity + 0.15, 1) });
+    const flrMesh = new THREE.Mesh(new THREE.BoxGeometry(pW, flT, pH), flrMat);
+    flrMesh.position.set(0, flT / 2, 0);
+    flrMesh.userData = { ...data, _isStall: true };
+    grp.add(flrMesh);
+
+    // Bold border walls (no transparency)
+    const wallH = 8;
+    const borderMat = new THREE.MeshLambertMaterial({ color: col });
+    const topB = new THREE.Mesh(new THREE.BoxGeometry(pW, wallH, wT * 1.5), borderMat);
+    topB.position.set(0, flT + wallH / 2, -pH / 2); grp.add(topB);
+    const btmB = new THREE.Mesh(new THREE.BoxGeometry(pW, wallH, wT * 1.5), borderMat);
+    btmB.position.set(0, flT + wallH / 2, pH / 2); grp.add(btmB);
+    const lftB = new THREE.Mesh(new THREE.BoxGeometry(wT * 1.5, wallH, pH), borderMat);
+    lftB.position.set(-pW / 2, flT + wallH / 2, 0); grp.add(lftB);
+    const rgtB = new THREE.Mesh(new THREE.BoxGeometry(wT * 1.5, wallH, pH), borderMat);
+    rgtB.position.set(pW / 2, flT + wallH / 2, 0); grp.add(rgtB);
+
+    stallsGroup3.add(grp);
+    addStallLabel3D(grp, data, flT + wallH + 6, act);
+    return;
+  }
+
+  // ── NORMAL + HD: full booth construction ──
+  const pos = (data.Positions || '').toLowerCase();
+  const oT = pos.includes('top'), oB = pos.includes('bottom'), oL = pos.includes('left'), oR = pos.includes('right');
+  const hW = pW / 2, hH = pH / 2;
+  const wallH = vH - fH, wallY = flT + wallH / 2, fY = flT + wallH + fH / 2;
+
+  // Floor slab
+  const flrMat = new THREE.MeshLambertMaterial({ color: col });
+  const flrMesh = new THREE.Mesh(new THREE.BoxGeometry(pW, flT, pH), flrMat);
+  flrMesh.position.set(0, flT / 2, 0);
+  flrMesh.userData = { ...data, _isStall: true };
+  if (currentQuality === 'hd') { flrMesh.receiveShadow = true; }
+  grp.add(flrMesh);
+
+  // Walls — reduced transparency for better visibility
+  const wallOpacity = currentQuality === 'hd' ? 0.45 : 0.38;
+  const wallMat  = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: wallOpacity });
+  const frameMat = new THREE.MeshLambertMaterial({ color: col });
+
+  if (!oT) { const w = new THREE.Mesh(new THREE.BoxGeometry(pW + wT, wallH, wT), wallMat); w.position.set(0, wallY, -hH + wT/2); w.userData = { ...data, _isStall: true }; grp.add(w); }
+  if (!oB) { const w = new THREE.Mesh(new THREE.BoxGeometry(pW + wT, wallH, wT), wallMat); w.position.set(0, wallY,  hH - wT/2); w.userData = { ...data, _isStall: true }; grp.add(w); }
+  if (!oL) { const w = new THREE.Mesh(new THREE.BoxGeometry(wT, wallH, pH + wT), wallMat); w.position.set(-hW + wT/2, wallY, 0); w.userData = { ...data, _isStall: true }; grp.add(w); }
+  if (!oR) { const w = new THREE.Mesh(new THREE.BoxGeometry(wT, wallH, pH + wT), wallMat); w.position.set( hW - wT/2, wallY, 0); w.userData = { ...data, _isStall: true }; grp.add(w); }
+
+  // Fascia frames (solid colour bands)
+  [[0, fY, -hH + wT/2], [0, fY, hH - wT/2]].forEach(([x, y, z]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(pW + wT, fH, wT), frameMat);
+    m.position.set(x, y, z); m.userData = { ...data, _isStall: true }; grp.add(m);
+  });
+  [[-hW + wT/2, fY, 0], [hW - wT/2, fY, 0]].forEach(([x, y, z]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(wT, fH, pH + wT), frameMat);
+    m.position.set(x, y, z); m.userData = { ...data, _isStall: true }; grp.add(m);
+  });
+
+  // Corner columns
+  [[-hW + wT/2, -hH + wT/2], [hW - wT/2, -hH + wT/2], [-hW + wT/2, hH - wT/2], [hW - wT/2, hH - wT/2]].forEach(([px, pz]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(2, wallH, 2), frameMat);
+    m.position.set(px, wallY, pz); m.userData = { ...data, _isStall: true }; grp.add(m);
+  });
+
+  // ── NORMAL mode: table + chairs removed for optimized stall view ──
+
+  // Reception desk
+  if (pW >= 25 && pH >= 20) {
+    let dZ = oB ? hH - 5 : oT ? -hH + 5 : 0;
+    if (dZ !== 0) {
+      mk(geo3DB, mat3DeskA, -hW + 7, flT + 3.75, dZ);
+      mk(geo3DTop, mat3Desk, -hW + 7, flT + 7.5, dZ);
+    }
+  }
+
+  // ── HD mode: plants + rounded counter ──
+  if (currentQuality === 'hd' && pW > 30 && pH > 25) {
+    // Plants at corners
+    [[-hW + 5, hH - 5], [hW - 5, hH - 5]].forEach(([px, pz]) => {
+      mk(geo3Pot,   mat3Pot,   px, flT + 1.5, pz);
+      mk(geo3Plant, mat3Plant, px, flT + 11,  pz);
+    });
+
+    // Premium counter
+    if (pW >= 40) {
+      const cZ = oB ? hH - 6 : oT ? -hH + 6 : 0;
+      if (cZ !== 0) {
+        mk(geo3Counter,    mat3CounterWhite, -hW + 8, flT + 4, cZ);
+        mk(geo3CounterTop, mat3Table,        -hW + 8, flT + 8.3, cZ);
+      }
+    }
+
+    // LED strip along fascia
+    const ledMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 });
+    const ledGeo = new THREE.BoxGeometry(pW - 2, 0.8, 0.8);
+    const led = new THREE.Mesh(ledGeo, ledMat);
+    led.position.set(0, fY + fH / 2 + 0.5, -hH + wT / 2);
+    grp.add(led);
+  }
+
+  stallsGroup3.add(grp);
+  addStallLabel3D(grp, data, flT + vH + 4, act);
+}
+
+/* ── Shared label builder ── */
+function addStallLabel3D(grp, data, yOffset, act) {
+  if (act) {
+    activeStallPos3 = grp.position.clone();
+    if (innerWidth <= 768) activeStallPos3.z -= 100;
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="active-pin"><div class="pin-pulse"></div><div class="pin-label">${escapeHtmlLocal(data.StallNo)}</div></div>`;
+    const lbl = new THREE.CSS2DObject(div);
+    lbl.position.set(0, yOffset + 8, 0);
+    grp.add(lbl);
+  } else {
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="stall-label" data-stall-width="${Number(data.dWidth) || 40}" data-stall-height="${Number(data.dHeight) || 40}">${escapeHtmlLocal(data.StallNo)}</div>`;
+    const labelEl = div.querySelector('.stall-label');
+    const lbl = new THREE.CSS2DObject(div);
+    lbl.position.set(0, yOffset, 0);
+    grp.add(lbl);
+    stallLabel3DRefs.push({ element: labelEl, label: lbl, data });
+  }
+}
+
+function buildUtil3(data) {
+  const flT = 2;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(data.dWidth, flT, data.dHeight),
+    new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  mesh.position.set(data.dLeft + data.dWidth / 2, flT / 2, data.dTop + data.dHeight / 2);
+  mesh.userData = { isUtility: true, Text: data.Text };
+  const div = document.createElement('div');
+  div.innerHTML = `<div class="util-label">${data.Text}</div>`;
+  const lbl = new THREE.CSS2DObject(div);
+  lbl.position.set(0, flT + 1, 0);
+  mesh.add(lbl);
+  stallsGroup3.add(mesh);
+}
+
+function getStallDataFromHit(object) {
+  let obj = object;
+  while (obj) {
+    if (obj.userData && obj.userData._isStall && obj.userData.StallNo) return obj.userData;
+    obj = obj.parent;
+  }
+  return null;
+}
+
+function onCk3(e) {
+  if (_multiTouchActive) return;
+  const rect = renderer3.domElement.getBoundingClientRect();
+  mouse3.x = ((e.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
+  mouse3.y = -((e.clientY - rect.top) / Math.max(1, rect.height)) * 2 + 1;
+  raycaster3.setFromCamera(mouse3, camera3);
+  const hits = raycaster3.intersectObjects(stallsGroup3.children, true);
+  if (hits.length > 0) {
+    const hm = hits[0].object;
+    if (hm.material && hm.material.opacity < .2) return;
+    const d = getStallDataFromHit(hm);
+    if (d && d.StallNo) showStallDialog(d);
+  }
+}
+
+function hiG3(g, hex) {
+  if (!g) return;
+  routeHighlightedGroups3.add(g);
+  g.traverse(c => {
+    if (!c.isMesh || !c.material || c.userData.isTargetPin) return;
+    // Clone material before coloring so highlight never leaks to other stalls using shared materials.
+    if (!c.userData.routeOrigMaterial) c.userData.routeOrigMaterial = c.material;
+    if (!c.userData.routeMat) c.userData.routeMat = c.userData.routeOrigMaterial.clone();
+    c.material = c.userData.routeMat;
+    if (c.material.color) c.material.color.setHex(hex);
+    c.material.opacity = Math.max(.82, c.material.opacity || 1);
+    c.material.transparent = true;
+  });
+}
+function unHiG3(g) {
+  if (!g) return;
+  g.traverse(c => {
+    if (!c.isMesh || c.userData.isTargetPin) return;
+    if (c.userData.routeOrigMaterial) {
+      if (c.material && c.material !== c.userData.routeOrigMaterial && c.material.dispose) c.material.dispose();
+      c.material = c.userData.routeOrigMaterial;
+      delete c.userData.routeOrigMaterial;
+      delete c.userData.routeMat;
+    }
+  });
+  routeHighlightedGroups3.delete(g);
+}
+function resetAllRouteHighlights3() {
+  Array.from(routeHighlightedGroups3).forEach(g => unHiG3(g));
+  routeHighlightedGroups3.clear();
+}
+function focusMode3(on) {
+  stallsGroup3.children.forEach(g => {
+    if (on && (g === startGroup3 || g === endGroup3)) return;
+    g.traverse(c => { if (c.isMesh && c.material) {
+      if (c.userData.focusOrigOp === undefined) c.userData.focusOrigOp = c.material.opacity !== undefined ? c.material.opacity : 1;
+      if (on) { c.material.opacity = .10; c.material.transparent = true; }
+      else { c.material.opacity = c.userData.focusOrigOp; c.material.transparent = c.userData.focusOrigOp < 1; delete c.userData.focusOrigOp; }
+    }});
+  });
+}
+
+/* ══════════════════════════════════════════
+   3D FOCUS HELPERS
+══════════════════════════════════════════ */
+function rebuild3DAndFocus(stallNo) {
+  clearStallGroup3();
+  buildAll3D();
+  setTimeout(() => focusStall3d(stallNo), 350);
+}
+
+function focusStall3d(stallNo) {
+  let tg = null;
+  stallsGroup3.children.forEach(g => {
+    if (tg || !g.userData) return;
+    const ok = searchTargetMatchMode === 'id'
+      ? matchesStallBackendId(g.userData, stallNo)
+      : matchesStallKey(g.userData, stallNo);
+    if (ok) tg = g;
+  });
+  if (!tg) return;
+  const pos = tg.position;
+  controls3.target.set(pos.x, 0, pos.z);
+  const distance = window.innerWidth <= 768 ? 500 : 350;
+  camera3.position.set(pos.x, distance * 0.9, pos.z + distance);
+  controls3.update();
+}
+
+/* ══════════════════════════════════════════
+   AISLE-FIRST PATHFINDING ENGINE
+   - If backend provides AISLE / WALK / PATH boxes in SpaceData, routing stays inside them.
+   - Otherwise it falls back to inflated-stall grid routing with sharp 90° turns.
+══════════════════════════════════════════ */
+const CELL = 4;
+// Keep the route close to the real aisle/open side. A very large clearance made the line float far away from stalls.
+const ROUTE_CLEARANCE = 8;
+const ROUTE_ENTRY_OFFSET = ROUTE_CLEARANCE + CELL;
+// This is for the routing grid only. Camera/visual padding must not make outside labels like "HALL 5" walkable.
+const ROUTE_EDGE_PADDING = 8;
+let _grid = null, _gCols = 0, _gRows = 0, _gMinX = 0, _gMinY = 0, _gMaxX = 0, _gMaxY = 0, _usingWalkZones = false;
+let _routeStallBounds = { x0: 0, x1: 0, y0: 0, y1: 0 };
+
+function cellToWorld(c, r) { return { x: _gMinX + c * CELL + CELL / 2, y: _gMinY + r * CELL + CELL / 2 }; }
+function worldToCell(wx, wy) { return { c: Math.floor((wx - _gMinX) / CELL), r: Math.floor((wy - _gMinY) / CELL) }; }
+function routeCenter(d) { return { x: d.dLeft + d.dWidth / 2, y: d.dTop + d.dHeight / 2 }; }
+function routeLabel(d, fallback) { return d?.StallNo || d?.Text || fallback || ''; }
+
+function isRouteWalkZone(d) {
+  // IMPORTANT: do not treat normal text labels like "AISLE A" / "ENTRY EXIT" as route zones.
+  // Those labels are usually small annotations, not the actual walkable floor.
+  // Backend/admin should create invisible utility boxes with these exact prefixes:
+  // WALK-PATH-1, WALK-ZONE-1, ROUTE-ZONE-1, CORRIDOR-1, PATH-1.
+  const raw = String(d.Text || d.Name || d.Type || d.RouteType || '').trim();
+  const upper = raw.toUpperCase();
+  const explicitByName = /^(WALK|WALK-PATH|WALK-ZONE|ROUTE|ROUTE-ZONE|PATH|CORRIDOR)(-|_|\s|\d)/.test(upper);
+  const explicitByField = d.IsRoutePath === true || d.IsRoutePath === 'true' || d.IsWalkingPath === true || d.IsWalkingPath === 'true';
+  const isBigEnough = (Number(d.dWidth) || 0) >= 12 && (Number(d.dHeight) || 0) >= 12;
+  return (explicitByName || explicitByField) && isBigEnough;
+}
+
+function getRouteWalkZones() {
+  return allUtilData.filter(isRouteWalkZone);
+}
+
+function markGridRect(grid, cols, rows, x0, y0, x1, y1, value) {
+  const cS = Math.max(0, Math.floor((x0 - _gMinX) / CELL));
+  const cE = Math.min(cols - 1, Math.ceil((x1 - _gMinX) / CELL));
+  const rS = Math.max(0, Math.floor((y0 - _gMinY) / CELL));
+  const rE = Math.min(rows - 1, Math.ceil((y1 - _gMinY) / CELL));
+  for (let c = cS; c <= cE; c++) for (let r = rS; r <= rE; r++) grid[r * cols + c] = value;
+}
+
+function blockGridOuterFence(grid, cols, rows) {
+  // A one-cell fence stops routes from escaping/clamping around the calculated hall edge.
+  for (let c = 0; c < cols; c++) { grid[c] = 1; grid[(rows - 1) * cols + c] = 1; }
+  for (let r = 0; r < rows; r++) { grid[r * cols] = 1; grid[r * cols + cols - 1] = 1; }
+}
+
+function connectNearbyWalkZones(grid, cols, rows, zones) {
+  // Admin-created walking boxes may have tiny gaps between them.
+  // Bridge only small aligned gaps so the visitor route remains in the aisle network.
+  const GAP = 44;
+  const overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+  zones.forEach((a, i) => {
+    zones.slice(i + 1).forEach(b => {
+      const ax0 = a.dLeft, ax1 = a.dLeft + a.dWidth, ay0 = a.dTop, ay1 = a.dTop + a.dHeight;
+      const bx0 = b.dLeft, bx1 = b.dLeft + b.dWidth, by0 = b.dTop, by1 = b.dTop + b.dHeight;
+      const yOverlap = overlap(ay0, ay1, by0, by1);
+      const xOverlap = overlap(ax0, ax1, bx0, bx1);
+
+      // Horizontal bridge: boxes are left/right of each other with similar vertical band.
+      if (yOverlap > Math.min(a.dHeight, b.dHeight) * 0.35) {
+        const gap = bx0 > ax1 ? bx0 - ax1 : ax0 > bx1 ? ax0 - bx1 : 0;
+        if (gap > 0 && gap <= GAP) {
+          const yMid = (Math.max(ay0, by0) + Math.min(ay1, by1)) / 2;
+          const h = Math.min(28, Math.max(12, yOverlap * 0.8));
+          markGridRect(grid, cols, rows, Math.min(ax1, bx1), yMid - h / 2, Math.max(ax0, bx0), yMid + h / 2, 0);
+        }
+      }
+
+      // Vertical bridge: boxes are above/below each other with similar horizontal band.
+      if (xOverlap > Math.min(a.dWidth, b.dWidth) * 0.35) {
+        const gap = by0 > ay1 ? by0 - ay1 : ay0 > by1 ? ay0 - by1 : 0;
+        if (gap > 0 && gap <= GAP) {
+          const xMid = (Math.max(ax0, bx0) + Math.min(ax1, bx1)) / 2;
+          const w = Math.min(28, Math.max(12, xOverlap * 0.8));
+          markGridRect(grid, cols, rows, xMid - w / 2, Math.min(ay1, by1), xMid + w / 2, Math.max(ay0, by0), 0);
+        }
+      }
+    });
+  });
+}
+
+function computeRouteBounds(all, zones, useZones) {
+  // Use only real stalls to define the fallback routing boundary. Utility labels such as
+  // "HALL 5", "ENTRY", etc. can sit outside the layout and must not extend the walkable map.
+  const stallSource = allStallData.length ? allStallData : all.filter(d => d && (d.StallNo || d.SeatId));
+  let sx0 = Infinity, sx1 = -Infinity, sy0 = Infinity, sy1 = -Infinity;
+  stallSource.forEach(d => {
+    sx0 = Math.min(sx0, d.dLeft); sx1 = Math.max(sx1, d.dLeft + d.dWidth);
+    sy0 = Math.min(sy0, d.dTop);  sy1 = Math.max(sy1, d.dTop + d.dHeight);
+  });
+  if (!Number.isFinite(sx0) || !Number.isFinite(sy0)) { sx0 = 0; sy0 = 0; sx1 = 1000; sy1 = 1000; }
+  _routeStallBounds = { x0: sx0, x1: sx1, y0: sy0, y1: sy1 };
+
+  // Explicit admin walk zones may be outside the stall hull, so include them only in zone mode.
+  const source = useZones && zones.length ? [...zones, ...stallSource] : stallSource;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  source.forEach(d => {
+    x0 = Math.min(x0, d.dLeft); x1 = Math.max(x1, d.dLeft + d.dWidth);
+    y0 = Math.min(y0, d.dTop);  y1 = Math.max(y1, d.dTop + d.dHeight);
+  });
+  if (!Number.isFinite(x0) || !Number.isFinite(y0)) { x0 = sx0; y0 = sy0; x1 = sx1; y1 = sy1; }
+  const pad = useZones ? CELL * 2 : ROUTE_EDGE_PADDING;
+  return { x0: x0 - pad, x1: x1 + pad, y0: y0 - pad, y1: y1 + pad };
+}
+
+function buildNavGrid(excludeFrom, excludeTo) {
+  const all = [...allStallData, ...allUtilData];
+  const zones = getRouteWalkZones();
+  const zoneArea = zones.reduce((s, z) => s + (z.dWidth * z.dHeight), 0);
+  const useZones = zones.length >= 2 || zoneArea > 4000;
+  _usingWalkZones = useZones;
+
+  const b = computeRouteBounds(all, zones, useZones);
+  const x0 = b.x0, x1 = b.x1, y0 = b.y0, y1 = b.y1;
+  const cols = Math.ceil((x1 - x0) / CELL) + 2, rows = Math.ceil((y1 - y0) / CELL) + 2;
+  _gCols = cols; _gRows = rows; _gMinX = x0; _gMinY = y0; _gMaxX = x0 + cols * CELL; _gMaxY = y0 + rows * CELL;
+
+  const grid = new Uint8Array(cols * rows);
+  if (useZones) {
+    // Backend-controlled walking boxes mode: only these boxes are walkable.
+    grid.fill(1);
+    zones.forEach(z => markGridRect(grid, cols, rows, z.dLeft, z.dTop, z.dLeft + z.dWidth, z.dTop + z.dHeight, 0));
+    connectNearbyWalkZones(grid, cols, rows, zones);
+  } else {
+    // Fallback mode: walkable only inside the calculated hall rectangle, never the huge padded outside area.
+    grid.fill(0);
+  }
+
+  // Stalls are always obstacles, with padding, so route avoids cutting through booths.
+  // IMPORTANT: do NOT remove from/to stalls from obstacles. We route from their aisle-side point,
+  // not through the stall body. Excluding them allowed paths to visually cross start/end booths.
+  allStallData.forEach(d => {
+    markGridRect(
+      grid, cols, rows,
+      d.dLeft - ROUTE_CLEARANCE,
+      d.dTop - ROUTE_CLEARANCE,
+      d.dLeft + d.dWidth + ROUTE_CLEARANCE,
+      d.dTop + d.dHeight + ROUTE_CLEARANCE,
+      1
+    );
+  });
+
+  blockGridOuterFence(grid, cols, rows);
+  _grid = grid;
+  return { grid, cols, rows, minX: x0, minY: y0, maxX: _gMaxX, maxY: _gMaxY, usingWalkZones: useZones };
+}
+
+function routeObstaclePenalty(grid, cols, rows, c, r) {
+  // Soft cost keeps the line closer to the middle of open aisles instead of hugging stall borders.
+  // It does not block movement; it only makes edge-hugging paths less attractive.
+  let penalty = 0;
+  for (let dy = -3; dy <= 3; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nc = c + dx, nr = r + dy;
+      if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
+      if (grid[nr * cols + nc] === 1) {
+        const d = Math.max(Math.abs(dx), Math.abs(dy));
+        if (d <= 1) penalty += 8;
+        else if (d === 2) penalty += 3;
+        else penalty += 1;
+      }
+    }
+  }
+  return Math.min(18, penalty);
+}
+
+function aStar2(sx, sy, ex, ey, grid, cols, rows) {
+  if (sx < 0 || sx >= cols || sy < 0 || sy >= rows || ex < 0 || ex >= cols || ey < 0 || ey >= rows) return [];
+  const INF = 1e9;
+  const gCost = new Float32Array(cols * rows).fill(INF);
+  const parent = new Int32Array(cols * rows).fill(-1);
+  const KEY = (c, r) => r * cols + c;
+  gCost[KEY(sx, sy)] = 0;
+  const open = [{ c: sx, r: sy, f: 0 }];
+  // Prefer movement toward the target first. No diagonal movement.
+  // This avoids odd huge L-shaped detours caused only by tie-breaking.
+  const dirs = [];
+  if (ex >= sx) dirs.push([1, 0]); else dirs.push([-1, 0]);
+  if (ey >= sy) dirs.push([0, 1]); else dirs.push([0, -1]);
+  if (ex >= sx) dirs.push([-1, 0]); else dirs.push([1, 0]);
+  if (ey >= sy) dirs.push([0, -1]); else dirs.push([0, 1]);
+  while (open.length) {
+    open.sort((a, b) => a.f - b.f);
+    const { c, r } = open.shift();
+    if (c === ex && r === ey) {
+      const path = []; let k = KEY(c, r);
+      while (parent[k] !== -1) { const pc = k % cols, pr = Math.floor(k / cols); path.unshift({ x: pc, y: pr }); k = parent[k]; }
+      return path;
+    }
+    const cg = gCost[KEY(c, r)];
+    for (const [dc, dr] of dirs) {
+      const nc = c + dc, nr = r + dr;
+      if (nc < 0 || nc >= cols || nr < 0 || nr >= rows || grid[KEY(nc, nr)] === 1) continue;
+      const ng = cg + 1 + routeObstaclePenalty(grid, cols, rows, nc, nr), nk = KEY(nc, nr);
+      if (ng < gCost[nk]) {
+        gCost[nk] = ng;
+        parent[nk] = KEY(c, r);
+        const h = Math.abs(ex - nc) + Math.abs(ey - nr);
+        open.push({ c: nc, r: nr, f: ng + h + h * 0.001 });
+      }
+    }
+  }
+  return [];
+}
+
+function openSidesForStall(d) {
+  const raw = [
+    d?.Positions, d?.Position, d?.OpenSide, d?.OpenSides,
+    d?.SidePosition, d?.SideOpenPosition, d?.SideOpen
+  ].filter(v => v != null).join(' ').toLowerCase();
+
+  const sides = [];
+  const add = side => { if (!sides.includes(side)) sides.push(side); };
+  if (/\btop\b|\bnorth\b|\bfront-top\b/.test(raw) || raw.includes('top')) add('top');
+  if (/\bbottom\b|\bsouth\b|\bfront-bottom\b/.test(raw) || raw.includes('bottom')) add('bottom');
+  if (/\bleft\b|\bwest\b|\bfront-left\b/.test(raw) || raw.includes('left')) add('left');
+  if (/\bright\b|\beast\b|\bfront-right\b/.test(raw) || raw.includes('right')) add('right');
+  return sides;
+}
+
+function sideNormal(side) {
+  if (side === 'top') return { x: 0, y: -1 };
+  if (side === 'bottom') return { x: 0, y: 1 };
+  if (side === 'left') return { x: -1, y: 0 };
+  return { x: 1, y: 0 };
+}
+
+function sideAnchorPoint(d, side, t = 0.5, offset = ROUTE_ENTRY_OFFSET) {
+  const n = sideNormal(side);
+  const xAlong = d.dLeft + d.dWidth * t;
+  const yAlong = d.dTop + d.dHeight * t;
+  if (side === 'top') return { side, x: xAlong, y: d.dTop + n.y * offset };
+  if (side === 'bottom') return { side, x: xAlong, y: d.dTop + d.dHeight + n.y * offset };
+  if (side === 'left') return { side, x: d.dLeft + n.x * offset, y: yAlong };
+  return { side, x: d.dLeft + d.dWidth + n.x * offset, y: yAlong };
+}
+
+function isPointOnDeclaredSide(d, side, p) {
+  const tol = 1;
+  if (side === 'top') return p.y <= d.dTop - tol;
+  if (side === 'bottom') return p.y >= d.dTop + d.dHeight + tol;
+  if (side === 'left') return p.x <= d.dLeft - tol;
+  if (side === 'right') return p.x >= d.dLeft + d.dWidth + tol;
+  return true;
+}
+
+function pointInsideStallHullPadding(p, pad = ROUTE_EDGE_PADDING + CELL * 2) {
+  if (_usingWalkZones) return true;
+  const b = _routeStallBounds;
+  if (!b || !Number.isFinite(b.x0)) return true;
+  return p.x >= b.x0 - pad && p.x <= b.x1 + pad && p.y >= b.y0 - pad && p.y <= b.y1 + pad;
+}
+
+function sidePointsOutsideStallHull(d, side, offset = ROUTE_ENTRY_OFFSET) {
+  if (_usingWalkZones) return false;
+  const b = _routeStallBounds;
+  if (!b || !Number.isFinite(b.x0)) return false;
+  const p = sideAnchorPoint(d, side, 0.5, offset);
+  const tol = CELL * 0.75;
+  if (side === 'right' && p.x > b.x1 + tol) return true;
+  if (side === 'left' && p.x < b.x0 - tol) return true;
+  if (side === 'bottom' && p.y > b.y1 + tol) return true;
+  if (side === 'top' && p.y < b.y0 - tol) return true;
+  return false;
+}
+
+function sideTryOrder(declaredSides, d = null) {
+  const base = ['bottom', 'right', 'top', 'left'];
+  const opposite = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
+  const declared = (declaredSides || []).filter(Boolean);
+  const out = [];
+
+  // If the declared side points outside the hall hull, prefer its opposite side first.
+  // Example: a right-edge stall whose metadata says right should route from the left/internal aisle.
+  if (d) {
+    declared.forEach(s => {
+      if (sidePointsOutsideStallHull(d, s) && opposite[s] && !out.includes(opposite[s])) out.push(opposite[s]);
+    });
+  }
+
+  declared.forEach(s => { if (!out.includes(s)) out.push(s); });
+  base.forEach(s => { if (!out.includes(s)) out.push(s); });
+  return out;
+}
+
+function nearestWalkableOnSide(d, side, grid, cols, rows) {
+  // Reject an edge that points outside the real stall layout. This prevents routes from floating
+  // in outer whitespace created by labels/utility boxes instead of staying inside the map aisles.
+  if (sidePointsOutsideStallHull(d, side)) return null;
+
+  // Search along the same edge first, keeping the line close to the stall/front aisle.
+  const sideTs = [0.5, 0.38, 0.62, 0.25, 0.75, 0.12, 0.88];
+  const offsets = [ROUTE_ENTRY_OFFSET, ROUTE_ENTRY_OFFSET + CELL, ROUTE_ENTRY_OFFSET + CELL * 2, ROUTE_ENTRY_OFFSET + CELL * 4, ROUTE_ENTRY_OFFSET + CELL * 6];
+  let best = null;
+
+  for (const offset of offsets) {
+    if (sidePointsOutsideStallHull(d, side, offset)) continue;
+    for (const t of sideTs) {
+      const anchor = sideAnchorPoint(d, side, t, offset);
+      const base = worldToCell(anchor.x, anchor.y);
+      if (base.c < 0 || base.c >= cols || base.r < 0 || base.r >= rows) continue;
+      const idx = base.r * cols + base.c;
+      if (grid[idx] !== 0) continue;
+      const wp = cellToWorld(base.c, base.r);
+      if (!isPointOnDeclaredSide(d, side, wp) || !pointInsideStallHullPadding(wp)) continue;
+      const dist = Math.hypot(wp.x - anchor.x, wp.y - anchor.y);
+      if (!best || dist < best.dist) best = { point: wp, cell: { c: base.c, r: base.r }, dist, side };
+    }
+    if (best) return best;
+  }
+
+  // If exact samples are blocked by clearance/route zones, do a constrained BFS but still only accept cells on the same side.
+  const centerAnchor = sideAnchorPoint(d, side, 0.5, ROUTE_ENTRY_OFFSET + CELL * 2);
+  const predicate = (cell, world) => isPointOnDeclaredSide(d, side, world) && pointInsideStallHullPadding(world);
+  const cell = nearestWalkable(centerAnchor.x, centerAnchor.y, grid, cols, rows, predicate, 36);
+  if (!cell) return null;
+  const wp = cellToWorld(cell.c, cell.r);
+  return { point: wp, cell, dist: Math.hypot(wp.x - centerAnchor.x, wp.y - centerAnchor.y), side };
+}
+
+function stallEntryCandidates(d) {
+  const sides = openSidesForStall(d);
+  const order = sideTryOrder(sides.length ? sides : [], d);
+  return order.map(side => sideAnchorPoint(d, side, 0.5, ROUTE_ENTRY_OFFSET));
+}
+
+function stallEntryPoint(d, grid, cols, rows) {
+  if (!d) return null;
+  // Utilities/areas without open sides use their nearest walkable center.
+  if (!d.StallNo) {
+    const c = routeCenter(d);
+    const cell = nearestWalkable(c.x, c.y, grid, cols, rows);
+    return cell ? cellToWorld(cell.c, cell.r) : null;
+  }
+
+  const declaredSides = openSidesForStall(d);
+  const orderedSides = sideTryOrder(declaredSides, d);
+
+  // First use only the declared open side(s), but only if that edge leads inside the real hall.
+  let best = null;
+  for (const side of declaredSides) {
+    const entry = nearestWalkableOnSide(d, side, grid, cols, rows);
+    if (entry && (!best || entry.dist < best.dist)) best = entry;
+  }
+  if (best) return best.point;
+
+  // If backend says an outside edge is open, do not draw the route in the outer blank area.
+  // Try the nearest usable inside edge so the visual line stays with the stall/aisle.
+  for (const side of orderedSides) {
+    if (declaredSides.includes(side)) continue;
+    const entry = nearestWalkableOnSide(d, side, grid, cols, rows);
+    if (entry && (!best || entry.dist < best.dist)) best = entry;
+  }
+  if (best) {
+    if (declaredSides.length) console.warn('Declared open side was outside/blocked; used inside aisle side for stall:', d.StallNo, declaredSides);
+    return best.point;
+  }
+
+  // Last fallback: try every side (no hull check) to ensure the marker lands on a walkable
+  // aisle cell rather than inside the blocked stall interior.
+  const allSides = ['bottom', 'right', 'top', 'left'];
+  for (const side of allSides) {
+    const centerAnchor = sideAnchorPoint(d, side, 0.5, ROUTE_ENTRY_OFFSET + CELL * 2);
+    const cell = nearestWalkable(centerAnchor.x, centerAnchor.y, grid, cols, rows, null, 20);
+    if (cell) {
+      const wp = cellToWorld(cell.c, cell.r);
+      // Accept only if it is outside the stall bounds (aisle side, not trapped inside)
+      const inStall = wp.x >= d.dLeft - 1 && wp.x <= d.dLeft + d.dWidth + 1 &&
+                      wp.y >= d.dTop - 1 && wp.y <= d.dTop + d.dHeight + 1;
+      if (!inStall) return wp;
+    }
+  }
+  // Absolute last resort: nearest walkable from center, any direction
+  const c = routeCenter(d);
+  const cell = nearestWalkable(c.x, c.y, grid, cols, rows, null, 32);
+  return cell ? cellToWorld(cell.c, cell.r) : null;
+}
+
+function nearestWalkable(wx, wy, grid, cols, rows, predicate = null, maxRadiusCells = null) {
+  const clamp = (c, r) => ({ c: Math.max(0, Math.min(cols - 1, c)), r: Math.max(0, Math.min(rows - 1, r)) });
+  const base = worldToCell(wx, wy);
+  const { c, r } = clamp(base.c, base.r);
+  const startWorld = cellToWorld(c, r);
+  if (grid[r * cols + c] === 0 && (!predicate || predicate({ c, r }, startWorld))) return { c, r };
+  const visited = new Uint8Array(cols * rows);
+  const q = [{ c, r, depth: 0 }]; visited[r * cols + c] = 1;
+  const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  while (q.length) {
+    const { c: cc, r: cr, depth } = q.shift();
+    if (maxRadiusCells != null && depth > maxRadiusCells) continue;
+    const world = cellToWorld(cc, cr);
+    if (grid[cr * cols + cc] === 0 && (!predicate || predicate({ c: cc, r: cr }, world))) return { c: cc, r: cr };
+    for (const [dc, dr] of dirs) {
+      const nc = cc + dc, nr = cr + dr;
+      if (nc >= 0 && nc < cols && nr >= 0 && nr < rows && !visited[nr * cols + nc]) {
+        visited[nr * cols + nc] = 1;
+        q.push({ c: nc, r: nr, depth: depth + 1 });
+      }
+    }
+  }
+  return null;
+}
+
+function simplifyGridCellsToWaypoints(cells) {
+  if (!cells || cells.length < 2) return (cells || []).map(p => cellToWorld(p.x ?? p.c, p.y ?? p.r));
+  const keep = [cells[0]];
+  let lastDir = null;
+  for (let i = 1; i < cells.length; i++) {
+    const a = cells[i - 1], b = cells[i];
+    const dir = { x: Math.sign((b.x ?? b.c) - (a.x ?? a.c)), y: Math.sign((b.y ?? b.r) - (a.y ?? a.r)) };
+    if (lastDir && (dir.x !== lastDir.x || dir.y !== lastDir.y)) keep.push(a);
+    lastDir = dir;
+  }
+  keep.push(cells[cells.length - 1]);
+  let pts = keep.map(p => cellToWorld(p.x ?? p.c, p.y ?? p.r));
+  pts = normalizeRoutePoints(pts);
+  return pts;
+}
+
+function normalizeRoutePoints(points) {
+  const out = [];
+  for (const p of points) {
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    const last = out[out.length - 1];
+    if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 2) out.push({ x: p.x, y: p.y });
+  }
+  // Remove unnecessary collinear middle points while preserving sharp right-angle turns.
+  for (let i = out.length - 2; i >= 1; i--) {
+    const a = out[i - 1], b = out[i], c = out[i + 1];
+    const sameX = Math.abs(a.x - b.x) < 2 && Math.abs(b.x - c.x) < 2;
+    const sameY = Math.abs(a.y - b.y) < 2 && Math.abs(b.y - c.y) < 2;
+    if (sameX || sameY) out.splice(i, 1);
+  }
+  return out;
+}
+
+function pointInInflatedStall(p, ignore = []) {
+  const ignores = new Set(ignore.filter(Boolean));
+  return allStallData.some(d => {
+    if (ignores.has(d)) return false;
+    return p.x >= d.dLeft - 0.5 && p.x <= d.dLeft + d.dWidth + 0.5 && p.y >= d.dTop - 0.5 && p.y <= d.dTop + d.dHeight + 0.5;
+  });
+}
+
+function segmentCrossesAnyStall(a, b, ignore = []) {
+  // Sample along the visual segment. Cheap and reliable enough for our orthogonal map route.
+  const len = Math.max(1, segLen(a, b));
+  const samples = Math.ceil(len / 4);
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    if (pointInInflatedStall(p, ignore)) return true;
+  }
+  return false;
+}
+
+function routeCrossesAnyStall(points, ignore = []) {
+  for (let i = 1; i < points.length; i++) {
+    if (segmentCrossesAnyStall(points[i - 1], points[i], ignore)) return true;
+  }
+  return false;
+}
+
+function pointInsideRouteBounds(p) {
+  return p && p.x >= _gMinX && p.x <= _gMaxX && p.y >= _gMinY && p.y <= _gMaxY;
+}
+
+function routeInsideBounds(points) {
+  return (points || []).every(pointInsideRouteBounds);
+}
+
+function buildRouteWaypoints(fromD, toD) {
+  const { grid, cols, rows } = buildNavGrid(fromD, toD);
+  const fromEntry = stallEntryPoint(fromD, grid, cols, rows);
+  const toEntry   = stallEntryPoint(toD, grid, cols, rows);
+  if (!fromEntry || !toEntry) return [];
+
+  const fCell = nearestWalkable(fromEntry.x, fromEntry.y, grid, cols, rows);
+  const tCell = nearestWalkable(toEntry.x, toEntry.y, grid, cols, rows);
+  if (!fCell || !tCell) return [];
+
+  // Same aisle cell / adjacent stalls: keep it simple only if the visual segment is really clear.
+  if (fCell.c === tCell.c && fCell.r === tCell.r) {
+    const direct = normalizeRoutePoints([fromEntry, toEntry]);
+    if (routeInsideBounds(direct) && !routeCrossesAnyStall(direct)) return direct;
+  }
+
+  const gridPath = aStar2(fCell.c, fCell.r, tCell.c, tCell.r, grid, cols, rows);
+  if (!gridPath.length) return [];
+  const cells = [{ x: fCell.c, y: fCell.r }, ...gridPath.map(p => ({ x: p.x, y: p.y }))];
+  const aislePts = simplifyGridCellsToWaypoints(cells);
+  let finalPts = normalizeRoutePoints([fromEntry, ...aislePts, toEntry]);
+
+  // Final safety: if a simplified visual segment somehow crosses a stall, fall back to unsimplified grid points.
+  if (!routeInsideBounds(finalPts) || routeCrossesAnyStall(finalPts)) {
+    const rawPts = cells.map(p => cellToWorld(p.x, p.y));
+    finalPts = normalizeRoutePoints([fromEntry, ...rawPts, toEntry]);
+  }
+
+  // If even raw A* would visually cross a booth, reject instead of drawing a wrong route.
+  if (!routeInsideBounds(finalPts) || routeCrossesAnyStall(finalPts)) return [];
+  return finalPts;
+}
+/* ══════════════════════════════════════════
+   DIRECTIONS ENGINE — CLEAN AISLE INSTRUCTIONS
+   Goal: fewer, more human steps: mostly "Walk straight" until a real turn.
+══════════════════════════════════════════ */
+function headingDeg(a, b) { return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; }
+function signedTurn(h0, h1) { let d = h1 - h0; while (d > 180) d -= 360; while (d < -180) d += 360; return d; }
+function segLen(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+function routeDistance(points) { return (points || []).reduce((s, p, i) => i ? s + segLen(points[i - 1], p) : 0, 0); }
+
+function nearestStallLabel(wx, wy, excludeNos = []) {
+  let best = null, bestD = Infinity;
+  const excluded = excludeNos.map(x => String(x || '').toLowerCase());
+  for (const d of allStallData) {
+    if (excluded.includes(String(d.StallNo || '').toLowerCase())) continue;
+    const cx = d.dLeft + d.dWidth / 2, cy = d.dTop + d.dHeight / 2;
+    const dist = Math.hypot(wx - cx, wy - cy);
+    if (dist < bestD) { bestD = dist; best = d; }
+  }
+  if (best && bestD < Math.max(best.dWidth, best.dHeight, 25) * 3.2) return best.StallNo;
+  return null;
+}
+
+function compressDirectionPoints(points) {
+  if (!points || points.length <= 2) return points || [];
+  const MIN_LEG = 34;
+  const out = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = out[out.length - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+    if (segLen(prev, curr) < MIN_LEG) continue;
+    const h0 = headingDeg(prev, curr);
+    const h1 = headingDeg(curr, next);
+    if (Math.abs(signedTurn(h0, h1)) < 28) continue;
+    out.push(curr);
+  }
+  out.push(points[points.length - 1]);
+  return normalizeRoutePoints(out);
+}
+
+function humanTurn(angle, prevLen = 999, nextLen = 999) {
+  const abs = Math.abs(angle);
+  if (prevLen < 34 || nextLen < 34) return { type: 'straight', verb: null };
+  if (abs < 50) return { type: 'straight', verb: null };
+  // Avoid "bear left/right" for exhibition map. It confuses users. Use clear left/right only.
+  if (abs < 155) return { type: angle > 0 ? 'right' : 'left', verb: angle > 0 ? 'turn right' : 'turn left' };
+  // U-turn is rare indoors. Show only for a real long reversal.
+  if (prevLen > 120 && nextLen > 120) return { type: 'uturn', verb: 'turn around' };
+  return { type: 'straight', verb: null };
+}
+
+function destinationSideHint(waypoints, toD) {
+  if (!waypoints || waypoints.length < 2 || !toD) return 'straight ahead';
+  const lastWalk = waypoints[waypoints.length - 1];
+  const prevWalk = waypoints[waypoints.length - 2];
+  const dest = routeCenter(toD);
+  const walkH = headingDeg(prevWalk, lastWalk);
+  const destH = headingDeg(lastWalk, dest);
+  const turn = signedTurn(walkH, destH);
+  if (Math.abs(turn) < 32) return 'straight ahead';
+  return turn > 0 ? 'on your right' : 'on your left';
+}
+
+function straightStepText(passList) {
+  if (passList && passList.length) return `Walk straight, passing ${passList.slice(0, 2).join(', ')}`;
+  return 'Walk straight through the aisle';
+}
+
+function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
+  if (!waypoints || waypoints.length < 2) return [];
+  const pts = compressDirectionPoints(waypoints);
+  const steps = [];
+  steps.push({ type: 'start', icon: 'fa-circle-dot', iconClass: 'si-start', main: `Start at ${fromLabel}`, sub: 'Move to the nearest aisle', landmark: null });
+
+  const totalDist = routeDistance(pts);
+  if (pts.length <= 3 && totalDist < 130) {
+    const side = destinationSideHint(pts, meta.toD);
+    steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${side}`, sub: `You've arrived`, landmark: null });
+    return steps;
+  }
+
+  let straightDist = 0;
+  let passedStalls = [];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+    const prevLen = segLen(a, b);
+    const nextLen = segLen(b, c);
+    const angle = signedTurn(headingDeg(a, b), headingDeg(b, c));
+    straightDist += prevLen;
+
+    const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+    const lm = nearestStallLabel(midX, midY, [fromLabel, toLabel]);
+    if (lm && !passedStalls.includes(lm)) passedStalls.push(lm);
+
+    const turn = humanTurn(angle, prevLen, nextLen);
+    if (turn.type !== 'straight') {
+      if (straightDist > 42) {
+        steps.push({ type: 'straight', icon: 'fa-arrow-up', iconClass: 'si-straight', main: straightStepText(passedStalls), sub: null, landmark: null });
+      }
+      const turnLm = nearestStallLabel(b.x, b.y, [fromLabel, toLabel]);
+      const turnIcon = turn.type === 'right' ? 'fa-turn-right' : turn.type === 'left' ? 'fa-turn-left' : 'fa-rotate-left';
+      const turnIconClass = turn.type === 'right' ? 'si-right' : turn.type === 'left' ? 'si-left' : 'si-uturn';
+      steps.push({ type: turn.type, icon: turnIcon, iconClass: turnIconClass, main: capitalise(turn.verb), sub: null, landmark: turnLm });
+      straightDist = 0;
+      passedStalls = [];
+    }
+  }
+
+  if (straightDist > 42) {
+    steps.push({ type: 'straight', icon: 'fa-arrow-up', iconClass: 'si-straight', main: straightStepText(passedStalls), sub: null, landmark: null });
+  }
+
+  const sideHint = destinationSideHint(pts, meta.toD);
+  steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${sideHint}`, sub: `You've arrived`, landmark: null });
+
+  // Merge duplicate consecutive straight instructions.
+  const cleaned = [];
+  for (const s of steps) {
+    const last = cleaned[cleaned.length - 1];
+    if (last && last.type === 'straight' && s.type === 'straight') continue;
+    cleaned.push(s);
+  }
+  return cleaned;
+}
+function capitalise(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
+/* ══════════════════════════════════════════
+   NAV PANEL
+══════════════════════════════════════════ */
+function renderNavPanel(steps, fromLabel, toLabel) {
+  navStepsData = steps; currentNavStepIdx = 0;
+  document.getElementById('navFabFrom').textContent = fromLabel;
+  document.getElementById('navFabTo').textContent   = toLabel;
+  document.getElementById('fabStepBadge').textContent = steps.length + ' steps';
+  document.getElementById('navDrawerFrom').textContent = fromLabel;
+  document.getElementById('navDrawerTo').textContent   = toLabel;
+  const turns = steps.filter(s => s.type !== 'start' && s.type !== 'end' && s.type !== 'straight').length;
+  document.getElementById('drawerStepCount').textContent   = steps.length + ' steps';
+  document.getElementById('drawerSummaryText').textContent = `${turns} turn${turns !== 1 ? 's' : ''} · aisle route`;
+  renderDrawerSteps();
+  document.getElementById('nav-fab').classList.add('show');
+  openNavDrawer();
+  // Keep the direction drawer open. Auto-closing made steps disappear while users were reading/clicking them.
+}
+
+function renderDrawerSteps() {
+  const container = document.getElementById('drawerSteps');
+  container.innerHTML = '';
+  navStepsData.forEach((step, idx) => {
+    const el = document.createElement('div');
+    el.className = 'nav-step' + (idx === currentNavStepIdx ? ' step-active' : '');
+    el.dataset.idx = idx;
+    el.innerHTML = `
+      <div class="step-icon ${step.iconClass}"><i class="fa ${step.icon}"></i></div>
+      <div class="step-body">
+        <div class="step-main">${step.main}</div>
+        ${step.sub ? `<div class="step-sub">${step.sub}</div>` : ''}
+        ${step.landmark ? `<div class="step-landmark"><i class="fa fa-location-dot"></i> near ${step.landmark}</div>` : ''}
+      </div>
+      <div class="step-num">${idx + 1}</div>`;
+    el.addEventListener('click', () => { currentNavStepIdx = idx; renderDrawerSteps(); updateNavControls(); });
+    container.appendChild(el);
+  });
+  scrollActiveStepIntoView();
+  updateNavControls();
+}
+
+function scrollActiveStepIntoView() {
+  const container = document.getElementById('drawerSteps');
+  const active = container.querySelector('.step-active');
+  if (!active) return;
+  const containerHeight = container.clientHeight;
+  const elementTop = active.offsetTop;
+  const elementHeight = active.clientHeight;
+  container.scrollTo({ top: Math.max(0, elementTop - (containerHeight / 2) + (elementHeight / 2)), behavior: 'smooth' });
+}
+
+function updateNavControls() {
+  const total = navStepsData.length;
+  document.getElementById('navStepCounter').textContent = `${currentNavStepIdx + 1} / ${total}`;
+  document.getElementById('btnPrevStep').disabled = currentNavStepIdx === 0;
+  document.getElementById('btnNextStep').disabled = currentNavStepIdx === total - 1;
+  const pct = total > 1 ? (currentNavStepIdx / (total - 1)) * 100 : 100;
+  document.getElementById('drawerProgressFill').style.width = pct + '%';
+  document.getElementById('fabStepBadge').textContent = `${currentNavStepIdx + 1}/${total}`;
+}
+
+function navStepPrev() {
+  if (currentNavStepIdx > 0) { currentNavStepIdx--; renderDrawerSteps(); updateNavControls(); }
+}
+function navStepNext() {
+  if (currentNavStepIdx < navStepsData.length - 1) { currentNavStepIdx++; renderDrawerSteps(); updateNavControls(); }
+}
+function hideNavFab() {
+  document.getElementById('nav-fab').classList.remove('show');
+  closeNavDrawer();
+}
+
+/* ══════════════════════════════════════════
+   ROUTE LOCATION SEARCH HELPERS
+   Route inputs support Stall No., Seat/Stall ID, company name, and area/utility text.
+══════════════════════════════════════════ */
+function findRouteLocation(query) {
+  const q = normalizeStallKey(query);
+  const qc = compactStallKey(query);
+  if (!q) return null;
+  const stallIdKeys = d => [d.StallNo, d.SeatId, d.StallId, d.StallID, d.stallID, d.stallId];
+  const exactStall = allStallData.find(d => stallIdKeys(d).some(k => normalizeStallKey(k) === q || compactStallKey(k) === qc));
+  if (exactStall) return exactStall;
+  const exactUtil = allUtilData.find(d => normalizeStallKey(d.Text) === q || compactStallKey(d.Text) === qc);
+  if (exactUtil) return exactUtil;
+  const exactCompany = allStallData.find(d => normalizeStallKey(d.txtComName) === q || compactStallKey(d.txtComName) === qc);
+  if (exactCompany) return exactCompany;
+  const startsStall = allStallData.find(d => stallIdKeys(d).some(k => normalizeStallKey(k).startsWith(q) || compactStallKey(k).startsWith(qc)));
+  if (startsStall) return startsStall;
+  const startsCompany = allStallData.find(d => normalizeStallKey(d.txtComName).startsWith(q) || compactStallKey(d.txtComName).startsWith(qc));
+  if (startsCompany) return startsCompany;
+  const containsCompany = allStallData.find(d => normalizeStallKey(d.txtComName).includes(q) || compactStallKey(d.txtComName).includes(qc));
+  if (containsCompany) return containsCompany;
+  const containsStall = allStallData.find(d => stallIdKeys(d).some(k => normalizeStallKey(k).includes(q) || compactStallKey(k).includes(qc)));
+  if (containsStall) return containsStall;
+  const containsUtil = allUtilData.find(d => normalizeStallKey(d.Text).includes(q) || compactStallKey(d.Text).includes(qc));
+  if (containsUtil) return containsUtil;
+  return null;
+}
+function find3DGroupForData(data) {
+  if (!data || !stallsGroup3) return null;
+  let found = null;
+  stallsGroup3.children.forEach(g => {
+    if (found || !g.userData) return;
+    if (data.StallNo && matchesStallKey(g.userData, data.StallNo)) found = g;
+    else if (data.SeatId && matchesStallKey(g.userData, data.SeatId)) found = g;
+    else if (data.StallId && matchesStallKey(g.userData, data.StallId)) found = g;
+    else if (data.Text && normalizeStallKey(g.userData.Text) === normalizeStallKey(data.Text)) found = g;
+  });
+  return found;
+}
+function routeInputLabel(data, fallback) {
+  if (!data) return fallback || '';
+  return data.StallNo || data.Text || data.txtComName || fallback || '';
+}
+
+/* ══════════════════════════════════════════
+   ROUTE CALCULATION — 2D
+══════════════════════════════════════════ */
+function calculateRoute2d(fv, tv) {
+  const fromD = findRouteLocation(fv);
+  const toD   = findRouteLocation(tv);
+  if (!fromD) return alert("Could not find 'From' location: " + fv + "\nTip: use stall number or company name.");
+  if (!toD)   return alert("Could not find 'To' location: " + tv + "\nTip: use stall number or company name.");
+
+  const pts = buildRouteWaypoints(fromD, toD);
+  if (!pts.length) { alert('No walkable path found between these stalls. Please check the aisle/path boxes for this hall.'); return; }
+
+  routePath2d = pts;
+  routeStart2d = pts[0];
+  routeEnd2d = pts[pts.length - 1];
+
+  const fromLabel = routeInputLabel(fromD, fv), toLabel = routeInputLabel(toD, tv);
+  const steps = buildDirections(pts, fromLabel, toLabel, { fromD, toD });
+  renderNavPanel(steps, fromLabel, toLabel);
+  closeSidebar();
+}
+
+/* ══════════════════════════════════════════
+   ROUTE CALCULATION — 3D
+══════════════════════════════════════════ */
+function calculateRoute3d(fv, tv) {
+  const fromD = findRouteLocation(fv);
+  const toD   = findRouteLocation(tv);
+  if (!fromD) return alert("Could not find 'From' location: " + fv + "\nTip: use stall number or company name.");
+  if (!toD) return alert("Could not find 'To' location: " + tv + "\nTip: use stall number or company name.");
+  let sG = find3DGroupForData(fromD);
+  let eG = find3DGroupForData(toD);
+  if (!sG || !eG) {
+    clearStallGroup3();
+    buildAll3D();
+    sG = find3DGroupForData(fromD);
+    eG = find3DGroupForData(toD);
+  }
+  if (!sG) return alert("Could not show 'From' location in 3D.");
+  if (!eG) return alert("Could not show 'To' location in 3D.");
+
+  const worldPts = buildRouteWaypoints(fromD, toD);
+  if (!worldPts.length) { alert('No walkable path found. Please check the aisle/path boxes for this hall.'); return; }
+
+  startGroup3 = sG; endGroup3 = eG;
+  focusMode3(true);
+  hiG3(sG, 0x059669);
+  hiG3(eG, 0xef4444);
+
+  buildSharpRoute3D(worldPts);
+
+  const sn3 = routeInputLabel(fromD, fv), en3 = routeInputLabel(toD, tv);
+  startMark3 = new THREE.Mesh(makeConeGeo(), new THREE.MeshLambertMaterial({ color: 0x059669, emissive: 0x059669, emissiveIntensity: 1.5 }));
+  startMark3.position.set(worldPts[0].x, 25, worldPts[0].y);
+  const sDiv = document.createElement('div'); sDiv.className = 'route-badge badge-start';
+  sDiv.innerHTML = `<i class="fa fa-map-marker-alt"></i> START: ${sn3}`;
+  const sLbl = new THREE.CSS2DObject(sDiv); sLbl.position.set(0, 10, 0); startMark3.add(sLbl); scene.add(startMark3);
+
+  endMark3 = new THREE.Mesh(makeConeGeo(), new THREE.MeshLambertMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 1.5 }));
+  const last = worldPts[worldPts.length - 1];
+  endMark3.position.set(last.x, 25, last.y);
+  const eDiv = document.createElement('div'); eDiv.className = 'route-badge badge-end';
+  eDiv.innerHTML = `<i class="fa fa-flag-checkered"></i> END: ${en3}`;
+  const eLbl = new THREE.CSS2DObject(eDiv); eLbl.position.set(0, 10, 0); endMark3.add(eLbl); scene.add(endMark3);
+
+  const box = new THREE.Box3().setFromObject(sG).expandByObject(eG);
+  const ctr = box.getCenter(new THREE.Vector3());
+  controls3.target.copy(ctr);
+  const sz  = box.getSize(new THREE.Vector3());
+  camera3.position.set(ctr.x, Math.max(sz.x, sz.z) * 1.5, ctr.z + 500 + (innerWidth <= 768 ? 300 : 0));
+
+  const steps = buildDirections(worldPts, sn3, en3, { fromD, toD });
+  renderNavPanel(steps, sn3, en3);
+  closeSidebar();
+}
+
+function makeRouteCylinder3(a, b, radius, material) {
+  const va = new THREE.Vector3(a.x, 5, a.y);
+  const vb = new THREE.Vector3(b.x, 5, b.y);
+  const dir = new THREE.Vector3().subVectors(vb, va);
+  const len = dir.length();
+  if (len < 1) return null;
+  const geo = new THREE.CylinderGeometry(radius, radius, len, 10, 1, false);
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.copy(va).add(vb).multiplyScalar(.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  return mesh;
+}
+
+function buildSharpRoute3D(worldPts) {
+  clearRoute3d(false);
+  routeWorldPts3 = worldPts.map(p => ({ x: p.x, y: p.y }));
+  routeTotalLen3 = 0;
+  for (let i = 1; i < routeWorldPts3.length; i++) routeTotalLen3 += segLen(routeWorldPts3[i - 1], routeWorldPts3[i]);
+
+  pathMesh3 = new THREE.Group();
+  const coreMat = new THREE.MeshLambertMaterial({ color: 0x22d3ee, emissive: 0x0891b2, emissiveIntensity: 1.1, transparent: true, opacity: .96 });
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: .20, blending: THREE.AdditiveBlending, depthWrite: false });
+
+  for (let i = 1; i < routeWorldPts3.length; i++) {
+    const glow = makeRouteCylinder3(routeWorldPts3[i - 1], routeWorldPts3[i], 6, glowMat);
+    const core = makeRouteCylinder3(routeWorldPts3[i - 1], routeWorldPts3[i], 2.6, coreMat);
+    if (glow) pathMesh3.add(glow);
+    if (core) pathMesh3.add(core);
+  }
+
+  // Animated white beads moving along the 3D route.
+  pathAnimDots3 = [];
+  const dotCount = Math.min(5, Math.max(2, Math.floor(routeTotalLen3 / 180)));
+  const dotGeo = new THREE.SphereGeometry(6, 14, 14);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (let i = 0; i < dotCount; i++) {
+    const dot = new THREE.Mesh(dotGeo, dotMat);
+    dot.userData.routeOffset = i * (routeTotalLen3 / dotCount);
+    pathMesh3.add(dot);
+    pathAnimDots3.push(dot);
+  }
+  scene.add(pathMesh3);
+}
+
+function pointOnRoute3(distanceOnPath) {
+  if (!routeWorldPts3 || routeWorldPts3.length < 2 || routeTotalLen3 <= 0) return null;
+  let remaining = distanceOnPath;
+  for (let i = 1; i < routeWorldPts3.length; i++) {
+    const a = routeWorldPts3[i - 1], b = routeWorldPts3[i];
+    const len = segLen(a, b);
+    if (len <= 0) continue;
+    if (remaining <= len) {
+      const t = remaining / len;
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    }
+    remaining -= len;
+  }
+  return routeWorldPts3[routeWorldPts3.length - 1];
+}
+
+function updateRouteAnimation3(now) {
+  if (!pathAnimDots3.length || routeTotalLen3 <= 0) return;
+  pathAnimDots3.forEach(dot => {
+    const p = pointOnRoute3((now * .045 + dot.userData.routeOffset) % routeTotalLen3);
+    if (p) dot.position.set(p.x, 12 + Math.sin(now * .006) * 1.2, p.y);
+  });
+}
+
+function disposeRouteObject3(obj) {
+  if (!obj) return;
+  obj.traverse(child => {
+    if (child.isCSS2DObject && child.element?.parentNode) child.element.parentNode.removeChild(child.element);
+    if (child.geometry && child.geometry.dispose) child.geometry.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach(m => m.dispose && m.dispose());
+      else if (child.material.dispose) child.material.dispose();
+    }
+  });
+}
+
+function clearRoute3d(resetHighlights = true) {
+  if (pathMesh3 && scene) {
+    scene.remove(pathMesh3);
+    disposeRouteObject3(pathMesh3);
+    pathMesh3 = null;
+  }
+  [startMark3, endMark3].forEach(m => {
+    if (m && scene) { scene.remove(m); disposeRouteObject3(m); }
+  });
+  startMark3 = null; endMark3 = null;
+  pathAnimDots3 = [];
+  routeWorldPts3 = [];
+  routeTotalLen3 = 0;
+
+  if (resetHighlights) {
+    resetAllRouteHighlights3();
+    focusMode3(false);
+    startGroup3 = null;
+    endGroup3 = null;
+  }
+}
+
+/* ══════════════════════════════════════════
+   VIEW SWITCHING
+══════════════════════════════════════════ */
+function fullStateReset() {
+  setActiveStallTarget('', 'any');
+  document.getElementById('globalSearchInput').value = '';
+  document.getElementById('sidebarSearchInput').value = '';
+  document.getElementById('searchResultsDropdown').classList.remove('open');
+  document.getElementById('searchResultsDropdown').style.display = 'none';
+  document.getElementById('sidebarSearchResults').style.display = 'none';
+  document.getElementById('routeFrom').value = '';
+  document.getElementById('routeTo').value   = '';
+  document.getElementById('btnClear').style.display = 'none';
+  routePath2d = null; routeStart2d = null; routeEnd2d = null;
+  clearRoute3d();
+  navStepsData = []; currentNavStepIdx = 0;
+  hideNavFab(); closeNavDrawer(); closeSidebar();
+}
+
+function switchView(v) {
+  fullStateReset();
+  currentView = v;
+  const c2 = document.getElementById('canvas-2d');
+  const r3 = renderer3?.domElement, l3 = labelRenderer3?.domElement;
+  const zc = document.getElementById('zoomControls');
+  const qs = document.getElementById('qualitySection');
+  const fps = document.getElementById('fps-indicator');
+
+  if (v === '2d') {
+    c2.style.display = 'block';
+    if (r3) r3.style.display = 'none'; if (l3) l3.style.display = 'none';
+    zc.style.display = 'flex';
+    if (qs) qs.classList.remove('visible');
+    fps.classList.remove('show');
+    document.getElementById('btn2D').classList.add('active');
+    document.getElementById('btn3D').classList.remove('active');
+    fitCamera2d();
+    draw2d();
+  } else {
+    c2.style.display = 'none';
+    if (r3) r3.style.display = 'block'; if (l3) l3.style.display = 'block';
+    zc.style.display = 'flex';
+    if (qs) qs.classList.remove('visible');
+    fps.classList.add('show');
+    document.getElementById('btn3D').classList.add('active');
+    document.getElementById('btn2D').classList.remove('active');
+    clearStallGroup3();
+    buildAll3D();
+  }
+}
+
+/* ══════════════════════════════════════════
+   STALL DIALOG
+══════════════════════════════════════════ */
+function showStallDialog(data) {
+  const cat = data.Category === 'General' ? 'Silver' : (data.Category || 'Standard');
+  if (data.blBooked !== 'false') {
+    const init = data.txtComName ? data.txtComName[0].toUpperCase() : 'B';
+      jq('#DivBook').html(`<div class="stall-card"><div style="text-align:center;margin-bottom:8px"><div class="co-avatar">${init}</div><div class="co-name">${data.txtComName || 'Booked'}</div><span class="card-badge cb-booked"><i class="fa fa-lock"></i> Allotted</span></div><div class="info-grid"><div class="info-cell"><div class="info-label">Stall No.</div><div class="info-val"><i class="fa fa-hashtag"></i>${data.StallNo}</div></div><div class="info-cell"><div class="info-label">Area</div><div class="info-val"><i class="fa fa-vector-square"></i>${data.Area} m²</div></div><div class="info-cell"><div class="info-label">Dimensions</div><div class="info-val"><i class="fa fa-ruler-combined"></i>${data.Dimention}</div></div><div class="info-cell"><div class="info-label">Open Sides</div><div class="info-val"><i class="fa fa-door-open"></i>${data.SideOpen}</div></div></div><a class="btn-profile" href="https://register.acrex.in/ViewhallLayout.html?stallID=${data.SeatId}" target="_blank">View Exhibitor <i class="fa fa-arrow-right"></i></a></div>`).dialog({ modal: true, width: Math.min(innerWidth * .9, 390), buttons: [{ text: 'Close', click: function () { jq(this).dialog('close'); } }] });
+  } else if (data.blPreBooked !== '1' && data.blTemp === 'false') {
+    jq('#myModal').html(`<div class="stall-card"><div class="card-head"><div class="card-title">Stall ${data.StallNo}</div><span class="card-badge cb-available"><i class="fa fa-check-circle"></i> Available</span></div><div class="info-grid"><div class="info-cell"><div class="info-label">Area</div><div class="info-val"><i class="fa fa-vector-square"></i>${data.Area} m²</div></div><div class="info-cell"><div class="info-label">Dimensions</div><div class="info-val"><i class="fa fa-ruler-combined"></i>${data.Dimention}</div></div><div class="info-cell"><div class="info-label">Open Sides</div><div class="info-val"><i class="fa fa-door-open"></i>${data.SideOpen}</div></div><div class="info-cell"><div class="info-label">Category</div><div class="info-val"><i class="fa fa-star"></i>${cat}</div></div><div class="info-cell" style="grid-column:span 2"><div class="info-label">Scheme</div><div class="info-val"><i class="fa fa-layer-group"></i>${data.Scheme}</div></div></div></div>`).dialog({ modal: true, width: Math.min(innerWidth * .9, 390), buttons: [{ text: 'Close', click: function () { jq(this).dialog('close'); } }] });
+  } else {
+    jq('#myModal').html(`<div class="stall-card"><div class="card-head"><div class="card-title">Stall ${data.StallNo}</div><span class="card-badge cb-hold"><i class="fa fa-clock"></i> Prov. Blocked</span></div><div class="info-grid"><div class="info-cell"><div class="info-label">Area</div><div class="info-val"><i class="fa fa-vector-square"></i>${data.Area} m²</div></div><div class="info-cell"><div class="info-label">Dimensions</div><div class="info-val"><i class="fa fa-ruler-combined"></i>${data.Dimention}</div></div></div></div>`).dialog({ modal: true, width: Math.min(innerWidth * .9, 390), buttons: [{ text: 'Close', click: function () { jq(this).dialog('close'); } }] });
+  }
+}
+
+
+/* ══════════════════════════════════════════
+   FULL HALL CHANGE RESET
+══════════════════════════════════════════ */
+function closeAnyOpenDialogs() {
+  try {
+    if (window.jq) {
+      ['#myModal', '#DivBook'].forEach(sel => {
+        const el = jq(sel);
+        if (el && el.hasClass('ui-dialog-content')) el.dialog('close');
+      });
+    }
+  } catch (e) {}
+}
+
+function clearSearchUiFields() {
+  ['globalSearchInput', 'sidebarSearchInput', 'wowSearchInput'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['searchResultsDropdown', 'sidebarSearchResults', 'wowSearchResults'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = '';
+      el.classList.remove('open');
+      el.style.display = 'none';
+    }
+  });
+}
+
+function clearRouteInputFields() {
+  const from = document.getElementById('routeFrom');
+  const to = document.getElementById('routeTo');
+  if (from) from.value = '';
+  if (to) to.value = '';
+}
+
+function clearMapTransientState(options = {}) {
+  const clearInputs = options.clearInputs !== false;
+  const clearSearch = options.clearSearch !== false;
+  const clearSelection = options.clearSelection !== false;
+
+  if (clearSelection) setActiveStallTarget('', 'any');
+  activeStallPos3 = null;
+  routePath2d = null;
+  routeStart2d = null;
+  routeEnd2d = null;
+  _grid = null;
+  navStepsData = [];
+  currentNavStepIdx = 0;
+
+  if (clearInputs) clearRouteInputFields();
+  if (clearSearch) clearSearchUiFields();
+
+  try { hideNavFab(); } catch (e) { document.getElementById('nav-fab')?.classList.remove('show'); }
+  try { closeNavDrawer(); } catch (e) { document.getElementById('nav-drawer')?.classList.remove('open'); }
+  try { closeSidebar(); } catch (e) {}
+  try { if (window.closeSearchSheet) window.closeSearchSheet(); } catch (e) {}
+  try { if (window.hideStallBottomCard) window.hideStallBottomCard(); } catch (e) {}
+  closeAnyOpenDialogs();
+
+  const btnClear = document.getElementById('btnClear');
+  if (btnClear) btnClear.style.display = 'none';
+
+  try { clearRoute3d(); } catch (e) {}
+
+  // Force-clear any route start/end material left on 3D stalls before/after hall switches.
+  if (currentView === '3d' && typeof clearStallGroup3 === 'function') {
+    try { clearStallGroup3(); } catch (e) {}
+  }
+
+  if (currentView === '2d' && typeof render2dFrame === 'function') {
+    try { render2dFrame(); } catch (e) {}
+  }
+}
+
+function updateUrlForHallChange(hallId, hallName) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('HallId', hallId);
+    if (hallName) url.searchParams.set('hallName', hallName);
+    ['StallId', 'stallId', 'SeatId', 'seatId', 'StallNo', 'stallNo', 'from', 'to'].forEach(k => url.searchParams.delete(k));
+    history.replaceState(null, '', url.toString());
+  } catch (e) {}
+}
+
+function resetForHallChange(hallId, hallName) {
+  clearMapTransientState({ clearInputs: true, clearSearch: true, clearSelection: true });
+  updateUrlForHallChange(hallId, hallName);
+  try {
+    document.dispatchEvent(new CustomEvent('stallmap:hall-changing', { detail: { hallId, hallName } }));
+  } catch (e) {}
+}
+
+/* ══════════════════════════════════════════
+   URL PARAMS
+══════════════════════════════════════════ */
+function parseURLParams() {
+  const url = new URL(location.href);
+  const hId = url.searchParams.get('HallId');
+  const idParam = url.searchParams.get('StallId') || url.searchParams.get('stallId') || url.searchParams.get('SeatId') || url.searchParams.get('seatId');
+  const stallNoParam = url.searchParams.get('StallNo') || url.searchParams.get('stallNo');
+  const sId = idParam || stallNoParam;
+  const hn  = url.searchParams.get('hallName');
+  if (sId) setActiveStallTarget(sId, idParam ? 'id' : 'any');
+  if (hId) {
+    jq('#HallId').val(hId);
+    const li = document.querySelector(`#hallDropdown li[data-v="${hId}"]`);
+    const name = hn || (li ? li.getAttribute('data-n') : 'Selected Hall');
+    setHallUI(hId, name);
+  } else {
+    setHallUI(jq('#HallId').val(), 'HALL 1');
+  }
+}
+
+function setHallUI(val, name) {
+  document.getElementById('hallBtnText').textContent = name;
+  document.querySelectorAll('#hallDropdown li').forEach(li => li.classList.toggle('selected', li.getAttribute('data-v') === String(val)));
+  if (name) { const pn = name.replace(/HALL\s*/i, ''); jq('#hallPdf').attr('href', 'pdf/HALL_' + pn + '.pdf'); }
+}
+
+/* ══════════════════════════════════════════
+   DATA LOADING
+══════════════════════════════════════════ */
+function LoadSearchData() {
+  if (jq('#HallId').val() === '1') { alert('Please select a hall.'); return; }
+  jq('#loader').fadeIn(200);
+  // Clear all visible route/UI leftovers before loading a hall. Keep searchTargetStallId here
+  // so deep-link highlight still works when the page first loads with StallId/StallNo.
+  clearMapTransientState({ clearInputs: false, clearSearch: false, clearSelection: false });
+  allStallData = []; allUtilData = [];
+  clearStallGroup3();
+  document.getElementById('stallList').innerHTML = '';
+  jq.ajax({
+    type: 'POST',
+    url: 'https://elecrama25.ngauge.co.in/Admin/SeatLayout.aspx/GetSeachLayout',
+    data: `{HallId:"${jq('#HallId').val()}",Area:"${jq('#ddlArea').val()}",Scheme:"",OpenSide:"${jq('#ddlOpenSide').val()}",Category:"${jq('#ddlCategory').val()}",Mezzanine:""}`,
+    contentType: 'application/json; charset=utf-8',
+    dataType: 'json',
+    success: OnSuccess,
+    error: e => { console.error('AJAX', e); jq('#loader').fadeOut(200); if (window.showMapError) window.showMapError('Unable to load hall layout. Please check internet and try again.'); }
+  });
+}
+
+function OnSuccess(resp) {
+  const xml = jq(jq.parseXML(resp.d));
+  const dl  = document.getElementById('stallList');
+  xml.find('Table1').each(function () {
+    const sn = jq(this).find('StallNo').text();
+    const companyName = jq(this).find('txtComName').text();
+    if (sn) dl.innerHTML += `<option value="${escapeAttrLocal(sn)}"${companyName ? ` label="${escapeAttrLocal(companyName)}"` : ''}>`;
+    if (companyName) dl.innerHTML += `<option value="${escapeAttrLocal(companyName)}" label="${escapeAttrLocal(sn || 'Company')}">`;
+    allStallData.push({
+      SeatId: jq(this).find('SeatId').text(),
+      StallId: jq(this).find('StallId').text() || jq(this).find('StallID').text() || jq(this).find('stallID').text() || jq(this).find('stallId').text(),
+      StallNo: sn,
+      Scheme: jq(this).find('Scheme').text(), SideOpen: jq(this).find('SideOpen').text(),
+      Area: jq(this).find('area').text(), Dimention: jq(this).find('Dimension').text(),
+      dHeight: parseFloat(jq(this).find('dHeight').text()) || 40,
+      dWidth:  parseFloat(jq(this).find('dWidth').text())  || 40,
+      dTop:    parseFloat(jq(this).find('dTop').text())    || 0,
+      dLeft:   parseFloat(jq(this).find('dLeft').text())   || 0,
+      blStatus: jq(this).find('blStatus').text(),
+      blBooked: jq(this).find('blBooked').text(),
+      Positions: jq(this).find('Positions').text(),
+      blTemp: jq(this).find('blTemp').text(),
+      txtComName: jq(this).find('txtComName').text(),
+      Category: jq(this).find('Category').text(),
+      Mezzanine: jq(this).find('Mezzanine').text(),
+      blPreBooked: jq(this).find('blPreBooked').text(),
+      sStatus: jq(this).find('sStatus').text()
+    });
+  });
+  let sp = xml.find('Table2'); if (!sp.length) sp = xml.find('SpaceData');
+  sp.each(function () {
+    let txt = '';
+    jq(this).children().each(function () {
+      const tag = this.tagName.toLowerCase(), val = jq(this).text().trim();
+      if (!['dtop', 'dleft', 'dwidth', 'dheight', 'seatid'].includes(tag) && val && isNaN(val)) { txt = val; return false; }
+    });
+    if (txt) {
+      dl.innerHTML += `<option value="${escapeAttrLocal(txt)}">`;
+      allUtilData.push({
+        Text: txt,
+        dHeight: parseFloat(jq(this).find('dHeight').text()) || 40,
+        dWidth:  parseFloat(jq(this).find('dWidth').text())  || 100,
+        dTop:    parseFloat(jq(this).find('dTop').text())    || 0,
+        dLeft:   parseFloat(jq(this).find('dLeft').text())   || 0
+      });
+    }
+  });
+  // Expose latest hall data for enhancement/search modules loaded from separate JS files.
+  window.__allStallData = allStallData;
+  window.__allUtilData = allUtilData;
+
+  jq('#loader').fadeOut(200);
+  updateStats();
+  fitCamera2d();
+  if (searchTargetStallId) {
+    // Delay and retry once because canvas size/layout can settle after WebView load.
+    focusStall2d(searchTargetStallId);
+    setTimeout(() => focusStall2d(searchTargetStallId), 80);
+  }
+  if (currentView === '3d') buildAll3D(); else draw2d();
+}
+
+function buildAll3D() {
+  allStallData.forEach(d => build3DStall(d));
+  allUtilData.forEach(d => buildUtil3(d));
+  const box = new THREE.Box3().setFromObject(stallsGroup3);
+  const ctr = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
+  mapBaseSize = Math.max(sz.x, sz.z) || 2000;
+  setTimeout(() => {
+    if (activeStallPos3) {
+      controls3.target.copy(activeStallPos3);
+      camera3.position.set(activeStallPos3.x, 800, activeStallPos3.z + 800 + (innerWidth <= 768 ? 300 : 0));
+    } else if (stallsGroup3.children.length) {
+      controls3.target.copy(ctr);
+      camera3.position.set(ctr.x, mapBaseSize * 1.2, ctr.z + mapBaseSize * .8);
+    }
+    controls3.update();
+  }, 300);
+}
+
+/* ══════════════════════════════════════════
+   ROUTE ENTRY POINTS
+══════════════════════════════════════════ */
+function hasActiveRoute() {
+  return !!(routePath2d || pathMesh3 || navStepsData.length || startMark3 || endMark3);
+}
+
+function resetRouteVisualState(keepInputs = true) {
+  routePath2d = null;
+  routeStart2d = null;
+  routeEnd2d = null;
+  clearRoute3d();
+  hideNavFab();
+  closeNavDrawer();
+  navStepsData = [];
+  currentNavStepIdx = 0;
+  document.getElementById('btnClear').style.display = 'none';
+  if (!keepInputs) {
+    document.getElementById('routeFrom').value = '';
+    document.getElementById('routeTo').value = '';
+  }
+  // In 3D, rebuilding is the safest way to remove any lingering highlighted material after route changes.
+  if (currentView === '3d' && scene) {
+    clearStallGroup3();
+    buildAll3D();
+  } else if (currentView === '2d' && typeof render2dFrame === 'function') {
+    render2dFrame();
+  }
+}
+
+function resetRouteIfInputsChanged() {
+  if (hasActiveRoute()) resetRouteVisualState(true);
+}
+
+function calculateRoute() {
+  const fv = document.getElementById('routeFrom').value.trim();
+  const tv = document.getElementById('routeTo').value.trim();
+  if (!fv || !tv) return alert('Please enter both From and To locations.');
+  routePath2d = null; routeStart2d = null; routeEnd2d = null;
+  clearRoute3d(); hideNavFab(); closeNavDrawer();
+  navStepsData = []; currentNavStepIdx = 0;
+  if (currentView === '2d') calculateRoute2d(fv, tv);
+  else calculateRoute3d(fv, tv);
+  document.getElementById('btnClear').style.display = 'block';
+}
+
+function clearRoute() {
+  // Hard reset all route state so START/END markers and green path never remain after Clear.
+  resetRouteVisualState(false);
+}
+
+/* ══════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+══════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSidebar(); closeNavDrawer(); document.getElementById('searchResultsDropdown').classList.remove('open'); }
+  if (e.key === 'ArrowRight' && navStepsData.length) navStepNext();
+  if (e.key === 'ArrowLeft'  && navStepsData.length) navStepPrev();
+  if ((e.key === 'f' || e.key === 'F') && !e.target.matches('input')) fitCamera2d();
+});
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+jq(function () {
+  parseURLParams();
+  updateQualityUI(currentQuality);
+
+  const hallBtn = document.getElementById('hallBtn');
+  const hallDD  = document.getElementById('hallDropdown');
+  hallBtn.addEventListener('click', e => { e.stopPropagation(); hallDD.classList.toggle('open'); hallBtn.classList.toggle('open'); });
+  document.addEventListener('click', () => { hallDD.classList.remove('open'); hallBtn.classList.remove('open'); });
+  hallDD.querySelectorAll('li').forEach(li => {
+    li.addEventListener('click', () => {
+      const v = li.getAttribute('data-v'), n = li.getAttribute('data-n');
+      if (v) { resetForHallChange(v, n); jq('#HallId').val(v); setHallUI(v, n); LoadSearchData(); }
+      hallDD.classList.remove('open'); hallBtn.classList.remove('open');
+    });
+  });
+
+  document.getElementById('routeFrom').addEventListener('keydown', e => { if (e.key === 'Enter') calculateRoute(); });
+  document.getElementById('routeTo').addEventListener('keydown',   e => { if (e.key === 'Enter') calculateRoute(); });
+  ['input', 'change'].forEach(evt => {
+    document.getElementById('routeFrom').addEventListener(evt, resetRouteIfInputsChanged);
+    document.getElementById('routeTo').addEventListener(evt, resetRouteIfInputsChanged);
+  });
+
+  resize2d();
+  window.addEventListener('resize', () => {
+    resize2d();
+    resize3d();
+  });
+
+  init3D();
+  LoadSearchData();
+  draw2d();
+});
+
+</script>
+<script>
+/* =========================================================
+   WOW UI Enhancements for ViewhallLayout — client-safe patch
+   Frontend-only layer. Keeps backend/API and core map engine unchanged.
+   ========================================================= */
+
+(function () {
+  let routeFromUrlApplied = false;
+  let initialHighlightApplied = false;
+
+  function $(id) { return document.getElementById(id); }
+
+  window.escapeHtml = function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
+    });
+  };
+
+  function normalize(value) { return String(value ?? '').trim(); }
+  function lower(value) { return normalize(value).toLowerCase(); }
+  function haptic(ms = 18) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
+
+  function getAllStalls() {
+    try {
+      if (Array.isArray(window.__allStallData)) return window.__allStallData;
+      if (Array.isArray(allStallData)) return allStallData;
+    } catch (_) {}
+    return [];
+  }
+
+  function getStatus(data) {
+    if (!data) return { key: 'neutral', label: 'Unknown', icon: 'fa-circle-info' };
+    if (data.blBooked !== 'false') return { key: 'booked', label: 'Booked', icon: 'fa-lock' };
+    if (data.blPreBooked === '1' || data.blTemp !== 'false') return { key: 'hold', label: 'On Hold', icon: 'fa-clock' };
+    return { key: 'available', label: 'Available', icon: 'fa-check-circle' };
+  }
+
+  function findStall(stallNoOrSeatId) {
+    try {
+      if (typeof matchesStallKey === 'function') {
+        return getAllStalls().find(s => matchesStallKey(s, stallNoOrSeatId));
+      }
+    } catch (_) {}
+    const t = lower(stallNoOrSeatId);
+    const tc = t.replace(/[^a-z0-9]/g, '');
+    return getAllStalls().find(s => {
+      const keys = [s.StallNo, s.SeatId, s.StallId, s.StallID, s.stallID, s.stallId];
+      return keys.some(k => {
+        const nk = lower(k);
+        return nk && (nk === t || nk.replace(/[^a-z0-9]/g, '') === tc);
+      });
+    });
+  }
+
+  function statusBadgeHtml(status) {
+    return `<span class="stall-chip ${status.key}"><i class="fa ${status.icon}"></i>${escapeHtml(status.label)}</span>`;
+  }
+
+  window.hideStallBottomCard = function hideStallBottomCard() {
+    const card = $('stallBottomCard');
+    if (card) card.classList.remove('show');
+  };
+
+  // Direct details popup. No favorite, share, start-here, or go-here buttons.
+  window.openStallDetails = function openStallDetails(data) {
+    if (!data || !window.jq) return;
+    const status = getStatus(data);
+    const stallNo = normalize(data.StallNo || '—');
+    const company = normalize(data.txtComName) || (status.key === 'booked' ? 'Booked' : 'Available Stall');
+    const cat = normalize(data.Category) || 'Normal';
+    const target = status.key === 'booked' ? '#DivBook' : '#myModal';
+    const initial = company.charAt(0).toUpperCase() || 'S';
+    const safeSeatId = encodeURIComponent(normalize(data.SeatId || data.StallId || data.StallID || data.stallID || data.stallId));
+
+    const html = `
+      <div class="stall-card premium-dialog-card">
+        <div style="text-align:center;margin-bottom:8px">
+          <div class="co-avatar">${escapeHtml(initial)}</div>
+          <div class="co-name">${escapeHtml(company)}</div>
+          <span class="card-badge cb-${status.key === 'booked' ? 'booked' : status.key === 'hold' ? 'hold' : 'available'}"><i class="fa ${status.icon}"></i> ${escapeHtml(status.label)}</span>
+        </div>
+        <div class="info-grid">
+          <div class="info-cell"><div class="info-label">Stall No.</div><div class="info-val"><i class="fa fa-hashtag"></i>${escapeHtml(stallNo)}</div></div>
+          <div class="info-cell"><div class="info-label">Area</div><div class="info-val"><i class="fa fa-vector-square"></i>${escapeHtml(data.Area || '—')} m²</div></div>
+          <div class="info-cell"><div class="info-label">Dimensions</div><div class="info-val"><i class="fa fa-ruler-combined"></i>${escapeHtml(data.Dimention || '—')}</div></div>
+          <div class="info-cell"><div class="info-label">Open Sides</div><div class="info-val"><i class="fa fa-door-open"></i>${escapeHtml(data.SideOpen || '—')}</div></div>
+          <div class="info-cell" style="grid-column:span 2"><div class="info-label">Category / Scheme</div><div class="info-val"><i class="fa fa-layer-group"></i>${escapeHtml(cat)}${data.Scheme ? ' / ' + escapeHtml(data.Scheme) : ''}</div></div>
+        </div>
+        ${status.key === 'booked' && safeSeatId ? `<a class="btn-profile" href="https://register.acrex.in/ViewhallLayout.html?stallID=${safeSeatId}" target="_blank" rel="noopener">View Exhibitor <i class="fa fa-arrow-right"></i></a>` : ''}
+      </div>`;
+
+    jq(target).html(html).dialog({
+      modal: true,
+      width: Math.min(innerWidth * .92, 420),
+      buttons: [{ text: 'Close', click: function () { jq(this).dialog('close'); } }]
+    });
+  };
+
+  function showToast(message, icon = 'fa-circle-check') {
+    const stack = $('toastStack');
+    if (!stack) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<i class="fa ${icon}"></i><span>${escapeHtml(message)}</span>`;
+    stack.appendChild(toast);
+    setTimeout(() => toast.remove(), 2400);
+  }
+  window.showToast = showToast;
+
+  window.showMapError = function showMapError(message) {
+    const box = $('mapErrorBox');
+    if (!box) return;
+    box.querySelector('.map-error-text').textContent = message || 'Unable to load hall layout.';
+    box.classList.add('show');
+  };
+  window.hideMapError = function hideMapError() { $('mapErrorBox')?.classList.remove('show'); };
+  window.reloadCurrentHall = function reloadCurrentHall() { hideMapError(); if (typeof LoadSearchData === 'function') LoadSearchData(); };
+
+  function buildEnhancementShell() {
+    // Keep old element harmless for backwards compatibility, but direct popup is now used instead of bottom actions.
+    if (!$('stallBottomCard')) {
+      const card = document.createElement('div');
+      card.id = 'stallBottomCard';
+      card.className = 'stall-bottom-card';
+      document.body.appendChild(card);
+    }
+
+    if (!$('mobileSearchPill')) {
+      const pill = document.createElement('button');
+      pill.id = 'mobileSearchPill';
+      pill.className = 'mobile-search-pill';
+      pill.innerHTML = '<i class="fa fa-magnifying-glass"></i><span>Search stall or company</span>';
+      pill.addEventListener('click', openSearchSheet);
+      document.body.appendChild(pill);
+    }
+
+    if (!$('searchSheetOverlay')) {
+      const overlay = document.createElement('div');
+      overlay.id = 'searchSheetOverlay';
+      overlay.className = 'search-sheet-overlay';
+      overlay.innerHTML = `
+        <div class="search-sheet" role="dialog" aria-modal="true" aria-label="Search stalls">
+          <div class="search-sheet-head">
+            <div class="search-sheet-input-wrap">
+              <i class="fa fa-magnifying-glass" style="color:var(--accent)"></i>
+              <input id="wowSearchInput" class="search-sheet-input" placeholder="Search stall or company..." autocomplete="off" />
+            </div>
+            <button class="search-sheet-close" type="button" aria-label="Close search"><i class="fa fa-xmark"></i></button>
+          </div>
+          <div id="wowSearchResults" class="search-sheet-results search-results-dropdown"></div>
+        </div>`;
+      overlay.addEventListener('click', e => { if (e.target === overlay) closeSearchSheet(); });
+      overlay.querySelector('.search-sheet-close').addEventListener('click', closeSearchSheet);
+      document.body.appendChild(overlay);
+      const input = $('wowSearchInput');
+      const results = $('wowSearchResults');
+      let t = null;
+      input.addEventListener('input', function () {
+        clearTimeout(t);
+        t = setTimeout(() => renderSearchResults(this.value.trim(), results), 100);
+      });
+    }
+
+    if (!$('mapErrorBox')) {
+      const err = document.createElement('div');
+      err.id = 'mapErrorBox';
+      err.className = 'map-error-box';
+      err.innerHTML = `
+        <div class="map-error-icon"><i class="fa fa-wifi"></i></div>
+        <div class="map-error-title">Map could not load</div>
+        <div class="map-error-text">Please check internet connection and try again.</div>
+        <button class="map-error-btn" onclick="reloadCurrentHall()"><i class="fa fa-rotate-right"></i> Retry</button>`;
+      document.body.appendChild(err);
+    }
+
+    if (!$('toastStack')) {
+      const stack = document.createElement('div');
+      stack.id = 'toastStack';
+      stack.className = 'toast-stack';
+      document.body.appendChild(stack);
+    }
+
+    if (!$('mapHelpCard')) {
+      const help = document.createElement('div');
+      help.id = 'mapHelpCard';
+      help.className = 'map-help-card';
+      help.innerHTML = `
+        <div class="help-title">How to use map <button onclick="closeHelpCard()"><i class="fa fa-xmark"></i></button></div>
+        <div class="help-points">
+          <div><i class="fa fa-hand-pointer"></i>Tap stall for details</div>
+          <div><i class="fa fa-magnifying-glass"></i>Search company/stall</div>
+          <div><i class="fa fa-route"></i>Use sidebar for directions</div>
+        </div>`;
+      document.body.appendChild(help);
+    }
+
+    const drawer = $('nav-drawer');
+    if (drawer && !drawer.querySelector('.drawer-handle')) {
+      drawer.insertAdjacentHTML('afterbegin', '<div class="drawer-handle"></div>');
+    }
+
+    enhanceLegend();
+  }
+
+  window.closeHelpCard = function closeHelpCard() {
+    $('mapHelpCard')?.classList.remove('show');
+    try { localStorage.setItem('stallmap_help_seen', '1'); } catch (_) {}
+  };
+
+  function maybeShowHelp() {
+    try {
+      if (localStorage.getItem('stallmap_help_seen')) return;
+      setTimeout(() => $('mapHelpCard')?.classList.add('show'), 900);
+      setTimeout(() => closeHelpCard(), 8000);
+    } catch (_) {}
+  }
+
+  function enhanceLegend() {
+    const legend = document.querySelector('.map-legend');
+    if (!legend || legend.dataset.enhanced === '1') return;
+    legend.dataset.enhanced = '1';
+    const old = legend.innerHTML;
+    legend.innerHTML = `
+      <button class="legend-head" type="button" aria-label="Toggle legend">
+        <i class="fa fa-layer-group"></i><span>Legend</span><i class="fa fa-chevron-up legend-chev"></i>
+      </button>
+      <div class="legend-body">${old}</div>`;
+    legend.querySelector('.legend-head').addEventListener('click', () => legend.classList.toggle('collapsed'));
+    if (window.innerWidth <= 768) legend.classList.add('collapsed');
+  }
+
+  function openSearchSheet() {
+    const overlay = $('searchSheetOverlay');
+    overlay?.classList.add('open');
+    setTimeout(() => $('wowSearchInput')?.focus(), 120);
+  }
+  function closeSearchSheet() { $('searchSheetOverlay')?.classList.remove('open'); }
+  window.closeSearchSheet = closeSearchSheet;
+
+  // Original-style suggestions, but escaped and works with separated JS files.
+  if (typeof renderSearchResults === 'function') {
+    renderSearchResults = function fixedRenderSearchResults(query, resultsEl) {
+      if (!resultsEl) return;
+      const stalls = getAllStalls();
+      if (!query || !stalls.length) {
+        resultsEl.classList.remove('open');
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        return;
+      }
+
+      const q = lower(query);
+      const qc = (typeof compactStallKey === 'function') ? compactStallKey(query) : q.replace(/[^a-z0-9]/g, '');
+      const score = (d) => {
+        const stall = lower(d.StallNo);
+        const stallC = (typeof compactStallKey === 'function') ? compactStallKey(d.StallNo) : stall.replace(/[^a-z0-9]/g, '');
+        const company = lower(d.txtComName);
+        const companyC = (typeof compactStallKey === 'function') ? compactStallKey(d.txtComName) : company.replace(/[^a-z0-9]/g, '');
+        const ids = [d.SeatId, d.StallId, d.StallID, d.stallID, d.stallId].map(lower);
+        const idsC = [d.SeatId, d.StallId, d.StallID, d.stallID, d.stallId].map(v => (typeof compactStallKey === 'function') ? compactStallKey(v) : lower(v).replace(/[^a-z0-9]/g, ''));
+        if (stall === q || ids.includes(q) || stallC === qc || idsC.includes(qc)) return 100;
+        if (company === q || companyC === qc) return 90;
+        if (stall.startsWith(q) || stallC.startsWith(qc)) return 80;
+        if (company.startsWith(q) || companyC.startsWith(qc)) return 70;
+        if (stall.includes(q) || stallC.includes(qc)) return 60;
+        if (company.includes(q) || companyC.includes(qc)) return 50;
+        if (ids.some(x => x.includes(q)) || idsC.some(x => x.includes(qc))) return 45;
+        return 0;
+      };
+      const results = stalls
+        .map(d => ({ d, score: score(d) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score || String(a.d.StallNo).localeCompare(String(b.d.StallNo)))
+        .slice(0, 12)
+        .map(x => x.d);
+
+      if (!results.length) {
+        resultsEl.innerHTML = `<div class="search-empty"><i class="fa fa-magnifying-glass" style="display:block;font-size:18px;margin-bottom:4px;opacity:0.4"></i>No results for "${escapeHtml(query)}"</div>`;
+      } else {
+        resultsEl.innerHTML = results.map(d => {
+          const status = d.blBooked !== 'false' ? 'booked' : (d.blPreBooked === '1' || d.blTemp !== 'false') ? 'hold' : 'available';
+          const statusLabel = status === 'available' ? 'Free' : status === 'booked' ? 'Taken' : 'Hold';
+          const company = normalize(d.txtComName);
+          return `<div class="search-result-item" data-seat-id="${escapeHtml(d.SeatId)}" data-stall-id="${escapeHtml(d.StallId || d.StallID || d.stallID || d.stallId || '')}" data-stall-no="${escapeHtml(d.StallNo)}">
+            <div class="sri-no">${escapeHtml(d.StallNo)}</div>
+            <div class="sri-company">${company ? escapeHtml(company) : '<span style="color:var(--muted)">No exhibitor</span>'}</div>
+            <div class="sri-badge ${status}">${statusLabel}</div>
+          </div>`;
+        }).join('');
+      }
+
+      resultsEl.classList.add('open');
+      resultsEl.style.display = 'block';
+      resultsEl.querySelectorAll('.search-result-item[data-stall-no]').forEach(item => {
+        item.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          selectStallFromSearch(this.dataset.seatId || this.dataset.stallId || '', this.dataset.stallNo || '');
+        });
+      });
+    };
+  }
+
+  // Stall click should directly open details popup, not bottom card/actions.
+  if (typeof showStallDialog === 'function') {
+    showStallDialog = function directDetailsShowStallDialog(data) {
+      if (!data) return;
+      try {
+        const key = (typeof getStallPrimaryKey === 'function' ? getStallPrimaryKey(data) : (data.SeatId || data.StallId || data.StallID || data.stallID || data.stallId || data.StallNo || ''));
+        if (typeof setActiveStallTarget === 'function') setActiveStallTarget(key, key && key !== data.StallNo ? 'id' : 'any');
+        else searchTargetStallId = key;
+      } catch (_) {}
+      hideStallBottomCard();
+      window.openStallDetails(data);
+      haptic(15);
+    };
+  }
+
+  // Search click should behave like original: hide sidebar/sheets and focus/highlight selected stall.
+  if (typeof selectStallFromSearch === 'function') {
+    const oldSelect = selectStallFromSearch;
+    selectStallFromSearch = function fixedSelectStallFromSearch(seatId, stallNo) {
+      hideStallBottomCard();
+      closeSearchSheet();
+      oldSelect(seatId, stallNo);
+      if (typeof closeSidebar === 'function') closeSidebar();
+      // Prefer backend id first so duplicate/similar stall names never highlight the wrong stall.
+      const d = findStall(seatId) || findStall(stallNo);
+      if (d) {
+        const focusKey = (typeof getStallPrimaryKey === 'function' ? getStallPrimaryKey(d) : (d.SeatId || d.StallId || d.StallID || d.stallID || d.stallId || d.StallNo || ''));
+        try {
+          if (typeof setActiveStallTarget === 'function') setActiveStallTarget(focusKey, focusKey && focusKey !== d.StallNo ? 'id' : 'any');
+          else searchTargetStallId = focusKey;
+        } catch (_) {}
+        if (currentView === '3d' && typeof rebuild3DAndFocus === 'function') rebuild3DAndFocus(focusKey);
+        if (currentView === '2d' && typeof focusStall2d === 'function') focusStall2d(focusKey);
+        showToast('Stall highlighted', 'fa-location-dot');
+      }
+    };
+  }
+
+  if (typeof calculateRoute === 'function') {
+    const oldCalcRoute = calculateRoute;
+    calculateRoute = function enhancedCalculateRoute() {
+      const from = normalize($('routeFrom')?.value);
+      const to = normalize($('routeTo')?.value);
+      oldCalcRoute();
+      if (from && to) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('from', from);
+        url.searchParams.set('to', to);
+        history.replaceState(null, '', url.toString());
+        showToast('Route ready', 'fa-route');
+      }
+    };
+  }
+
+  if (typeof clearRoute === 'function') {
+    const oldClearRoute = clearRoute;
+    clearRoute = function fixedClearRoute() {
+      oldClearRoute();
+      try { routePath2d = null; routeStart2d = null; routeEnd2d = null; } catch (_) {}
+      try { navStepsData = []; currentNavStepIdx = 0; } catch (_) {}
+      $('nav-fab')?.classList.remove('show');
+      $('nav-drawer')?.classList.remove('open');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('from');
+      url.searchParams.delete('to');
+      history.replaceState(null, '', url.toString());
+      if (typeof render2dFrame === 'function' && currentView === '2d') render2dFrame();
+      showToast('Route cleared', 'fa-xmark');
+    };
+  }
+
+  if (typeof OnSuccess === 'function') {
+    const oldOnSuccess = OnSuccess;
+    OnSuccess = function enhancedOnSuccess(resp) {
+      hideMapError();
+      oldOnSuccess(resp);
+      try { window.__allStallData = allStallData; window.__allUtilData = allUtilData; } catch (_) {}
+
+      // Apply deep-link state only after hall data is loaded.
+      // URL example: ?HallId=23&StallId=14071407&hallName=HALL+6&from=H6-B11&to=H6-D9
+      applyRouteFromUrlOnce();
+
+      // Re-focus after route drawing because calculateRoute can move/refresh the map.
+      setTimeout(applyInitialHighlightFromUrlOnce, routeFromUrlApplied ? 420 : 80);
+    };
+  }
+
+  function applyInitialHighlightFromUrlOnce() {
+    if (initialHighlightApplied) return;
+    const params = new URLSearchParams(location.search);
+    const targetParam = params.get('StallId') || params.get('stallId') || params.get('seatId') || params.get('StallNo') || params.get('stallNo');
+    if (!targetParam) return;
+
+    const d = findStall(targetParam);
+    if (!d) {
+      // In WebView/AJAX timing cases, data may not be exposed to the enhancement layer immediately.
+      setTimeout(() => {
+        if (!initialHighlightApplied) applyInitialHighlightFromUrlOnce();
+      }, 300);
+      setTimeout(() => {
+        if (!initialHighlightApplied) showToast('Stall not found in selected hall', 'fa-triangle-exclamation');
+      }, 900);
+      return;
+    }
+
+    initialHighlightApplied = true;
+    try {
+      const key = (typeof getStallPrimaryKey === 'function' ? getStallPrimaryKey(d) : (d.SeatId || d.StallId || d.StallID || d.stallID || d.stallId || d.StallNo || targetParam));
+      if (typeof setActiveStallTarget === 'function') setActiveStallTarget(key, key && key !== d.StallNo ? 'id' : 'any');
+      else searchTargetStallId = key;
+    } catch (_) {}
+
+    const globalInput = $('globalSearchInput');
+    const sidebarInput = $('sidebarSearchInput');
+    if (globalInput) globalInput.value = d.StallNo || targetParam;
+    if (sidebarInput) sidebarInput.value = d.StallNo || targetParam;
+
+    if (typeof closeSidebar === 'function') closeSidebar();
+    closeSearchSheet();
+    hideStallBottomCard();
+
+    const focusKey = (typeof getStallPrimaryKey === 'function' ? getStallPrimaryKey(d) : (d.SeatId || d.StallId || d.StallID || d.stallID || d.stallId || d.StallNo || targetParam));
+    if (typeof focusStall2d === 'function') {
+      focusStall2d(focusKey);
+      setTimeout(() => focusStall2d(focusKey), 120);
+      setTimeout(() => focusStall2d(focusKey), 450);
+    }
+    if (currentView === '3d' && typeof rebuild3DAndFocus === 'function') rebuild3DAndFocus(focusKey);
+    if (currentView === '2d' && typeof render2dFrame === 'function') render2dFrame();
+
+    showToast('Stall highlighted: ' + (d.StallNo || targetParam), 'fa-location-dot');
+  }
+
+  function applyRouteFromUrlOnce() {
+    if (routeFromUrlApplied) return;
+    const params = new URLSearchParams(location.search);
+    const from = params.get('from');
+    const to = params.get('to');
+    if (from && to) {
+      routeFromUrlApplied = true;
+      const f = $('routeFrom');
+      const t = $('routeTo');
+      if (f) f.value = from;
+      if (t) t.value = to;
+      setTimeout(() => { if (typeof calculateRoute === 'function') calculateRoute(); }, 250);
+    }
+  }
+
+
+  document.addEventListener('stallmap:hall-changing', function () {
+    // User intentionally changed hall; do not re-apply previous deep-link route/highlight.
+    routeFromUrlApplied = false;
+    initialHighlightApplied = false;
+    hideStallBottomCard();
+    closeSearchSheet();
+    $('mapHelpCard')?.classList.remove('show');
+    $('mapErrorBox')?.classList.remove('show');
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      hideStallBottomCard();
+      closeSearchSheet();
+      $('mapHelpCard')?.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (new URLSearchParams(location.search).get('debug') === '1') document.body.classList.add('debug-mode');
+    buildEnhancementShell();
+    maybeShowHelp();
+  });
+})();
+
+</script>
+</body>
+</html>

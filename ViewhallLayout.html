@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Premium Interactive Stall Layout</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/base.css?v=situm-style-nav-v12" />
+<link rel="stylesheet" href="assets/css/ui-wow.css?v=situm-style-nav-v12" />
+</head>
+<body>
+<datalist id="stallList"></datalist>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title"><i class="fa fa-sliders" style="color:var(--accent);margin-right:8px"></i>Navigation</div>
+    <button class="sidebar-close" onclick="closeSidebar()"><i class="fa fa-xmark"></i></button>
+  </div>
+  <div class="sidebar-body">
+
+    <!-- Mobile-only search -->
+    <div class="sidebar-section sidebar-mobile-search">
+      <div class="sidebar-section-title">Search</div>
+      <div class="route-field-wrap">
+        <i class="fa fa-magnifying-glass" style="color:var(--muted)"></i>
+        <input id="sidebarSearchInput" placeholder="Search stall or company..." autocomplete="off" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text);padding:10px 6px;" />
+      </div>
+      <div id="sidebarSearchResults" style="display:none;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--radius-sm);max-height:160px;overflow-y:auto;padding:4px;"></div>
+    </div>
+
+    <!-- 3D quality selector removed: 3D is locked to Normal mode for WebView performance. -->
+
+    <!-- Hall stats -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Hall Stats</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--success)" id="statAvail">—</div><div class="stat-lbl">Available</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--danger)" id="statBooked">—</div><div class="stat-lbl">Booked</div></div>
+      </div>
+    </div>
+
+    <!-- Route navigation -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Find Route</div>
+      <!-- FROM custom dropdown -->
+      <div class="route-field-wrap route-combo-wrap" id="routeFromWrap">
+        <i class="fa fa-circle-dot" style="color:var(--success)"></i>
+        <input id="routeFrom" placeholder="From stall / company / area" autocomplete="off" />
+        <div class="route-combo-dropdown" id="routeFromDrop"></div>
+      </div>
+      <div class="route-swap">
+        <button class="route-swap-btn" onclick="swapRoute()" title="Swap from/to"><i class="fa fa-arrow-up-arrow-down"></i></button>
+      </div>
+      <!-- TO custom dropdown -->
+      <div class="route-field-wrap route-combo-wrap" id="routeToWrap">
+        <i class="fa fa-location-dot" style="color:var(--danger)"></i>
+        <input id="routeTo" placeholder="To stall / company / area" autocomplete="off" />
+        <div class="route-combo-dropdown" id="routeToDrop"></div>
+      </div>
+      <button class="btn-go" id="btnRoute" onclick="calculateRoute()"><i class="fa fa-route"></i> Get Directions</button>
+      <button class="btn-go-clear" id="btnClear" onclick="clearRoute()" style="display:none"><i class="fa fa-xmark"></i> Clear Route</button>
+    </div>
+
+    <!-- PDF download -->
+    <div class="sidebar-section">
+      <a id="hallPdf" href="#" download="hall-layout" class="pdf-link" style="justify-content:center"><i class="fa fa-download"></i> Download Hall PDF</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Header bar -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-brand-dot"></div>
+    <div class="header-brand-name">Stall<span>Map</span></div>
+  </div>
+  <div class="header-divider"></div>
+
+  <div class="hall-pick">
+      <button class="hall-btn" id="hallBtn">
+          <i class="fa fa-map-location-dot" style="color:var(--accent);font-size:11px"></i>
+          <span id="hallBtnText">Select Hall</span>
+          <i class="fa fa-chevron-down chevron"></i>
+      </button>
+      <ul class="hall-dropdown" id="hallDropdown">
+          <li data-v="" data-n="Select Hall">Select Hall</li>
+          <li data-v="7" data-n="HALL 9">HALL 9</li>
+          <li data-v="8" data-n="HALL 10">HALL 10</li>
+          <li data-v="9" data-n="HALL 11">HALL 11</li>
+          <li data-v="10" data-n="HALL 12">HALL 12</li>
+          <li data-v="11" data-n="HALL 14">HALL 14</li>
+          <li data-v="12" data-n="HALL 15">HALL 15</li>
+          <li data-v="14" data-n="HALL 17">HALL 17</li>
+          <!--<li data-v="27" data-n="HALL 9D">HALL 9D</li>
+        <li data-v="31" data-n="HALL 14">HALL 14</li>
+        <li data-v="33" data-n="HALL 15">HALL 15</li>
+        <li data-v="34" data-n="HALL 16">HALL 16</li>
+        <li data-v="37" data-n="HALL 17">HALL 17</li>
+        <li data-v="23" data-n="HALL 6">HALL 6</li>-->
+      </ul>
+  </div>
+
+  <div class="header-search" id="headerSearch">
+    <i class="fa fa-magnifying-glass header-search-icon"></i>
+    <input class="header-search-input" id="globalSearchInput" placeholder="Search stall or company..." autocomplete="off" />
+    <div class="search-results-dropdown" id="searchResultsDropdown"></div>
+  </div>
+
+  <div class="header-actions" style="display:none">
+    <div class="view-toggle">
+      <button class="view-btn active" id="btn2D" onclick="switchView('2d')"><i class="fa fa-map"></i> 2D</button>
+      <button class="view-btn"        id="btn3D" onclick="switchView('3d')"><i class="fa fa-cube"></i> 3D</button>
+    </div>
+    <button class="icon-btn" onclick="toggleSidebar()" title="Navigation" id="sidebarToggleBtn" style="display:none">
+      <i class="fa fa-sliders"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Canvas layer -->
+<div id="webgl-container">
+  <canvas id="canvas-2d"></canvas>
+  <div id="three-tooltip"></div>
+  <div id="tooltip-2d"></div>
+</div>
+
+<!-- Quality loading overlay removed: fixed Normal mode. -->
+
+<!-- Zoom controls -->
+<div class="zoom-controls" id="zoomControls">
+  <button class="zoom-btn" onclick="zoomMap(1.25)" title="Zoom in"><i class="fa fa-plus"></i></button>
+  <button class="zoom-btn" onclick="zoomMap(0.8)"  title="Zoom out"><i class="fa fa-minus"></i></button>
+  <button class="zoom-btn" onclick="resetMapView()" title="Fit to view"><i class="fa fa-expand"></i></button>
+</div>
+
+<!-- FPS indicator -->
+<div id="fps-indicator" class="show">FPS: —</div>
+
+<!-- Legend — TOP LEFT, FIXED -->
+<div class="map-legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#059669"></div>Available</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Booked</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#d97706"></div>Prov. Blocked</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#94a3b8"></div>On Hold</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#1d4ed8"></div>Selected</div>
+</div>
+
+<!-- NAV FAB -->
+<div id="nav-fab">
+  <div class="nav-fab-summary" id="navFabSummary">
+    <div class="dot dot-start"></div>
+    <span id="navFabFrom" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <i class="fa fa-arrow-right" style="font-size:9px;color:var(--muted)"></i>
+    <div class="dot dot-end"></div>
+    <span id="navFabTo" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="nav-fab-clear" onclick="clearRoute()"><i class="fa fa-xmark"></i> Clear</button>
+    <button class="nav-fab-btn" onclick="openNavDrawer()">
+      <i class="fa fa-route"></i> Directions
+      <span class="fab-step-badge" id="fabStepBadge">0 steps</span>
+    </button>
+  </div>
+</div>
+
+<!-- DIRECTIONS DRAWER -->
+<div id="nav-drawer">
+  <div class="drawer-header">
+    <div class="drawer-header-top">
+      <div class="drawer-title"><i class="fa fa-route" style="color:var(--accent);margin-right:6px"></i>Directions</div>
+      <button class="drawer-close" onclick="closeNavDrawer()"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div class="drawer-route-row">
+      <div class="drawer-chip drawer-chip-start"><i class="fa fa-circle-dot"></i><span id="navDrawerFrom"></span></div>
+      <div class="drawer-arrow"><i class="fa fa-arrow-right"></i></div>
+      <div class="drawer-chip drawer-chip-end"><i class="fa fa-flag-checkered"></i><span id="navDrawerTo"></span></div>
+    </div>
+    <div class="drawer-summary">
+      <span class="drawer-pill" id="drawerStepCount"></span>
+      <span id="drawerSummaryText"></span>
+    </div>
+    <div class="drawer-progress"><div class="drawer-progress-fill" id="drawerProgressFill" style="width:0%"></div></div>
+  </div>
+  <div class="drawer-steps" id="drawerSteps"></div>
+  <div class="drawer-step-controls">
+    <button class="nav-step-btn" id="btnPrevStep" onclick="navStepPrev()" disabled><i class="fa fa-arrow-left"></i> Prev</button>
+    <div class="nav-step-counter" id="navStepCounter">1 / 1</div>
+    <button class="nav-step-btn" id="btnNextStep" onclick="navStepNext()">Next <i class="fa fa-arrow-right"></i></button>
+  </div>
+</div>
+
+<!-- Loader -->
+<div id="loader">
+  <img src="images/spinner.gif" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif'">
+  <div>Loading Hall…</div>
+</div>
+
+<div id="myModal"  style="display:none"></div>
+<div id="DivBook" style="display:none"></div>
+<input type="hidden" id="HallId" value="8" />
+<input type="hidden" id="ddlArea" value="" />
+<input type="hidden" id="ddlOpenSide" value="" />
+<input type="hidden" id="ddlCategory" value="" />
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<script src="assets/js/app.js?v=situm-style-nav-v12"></script>
+<script src="assets/js/ui-wow.js?v=situm-style-nav-v12"></script>
+</body>
+</html>
