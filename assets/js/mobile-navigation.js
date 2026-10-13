@@ -50,10 +50,15 @@
   const sheet=()=>doc.getElementById('nav-drawer');
   const toggle=()=>doc.getElementById('btnMobileStepsToggle');
   const steps=()=>doc.getElementById('drawerSteps');
-  const height=()=>{const el=sheet();return mobile()&&el&&el.classList.contains('open') ? el.offsetHeight : 0;};
+  // Cache the measured sheet height: the camera-follow loop runs every
+  // animation frame, and reading offsetHeight each time can force reflow.
+  let cachedHeight=0;
+  const height=()=>mobile()&&sheet()?.classList.contains('open')?cachedHeight:0;
   function syncHeight(){
     if(!doc.body)return;
-    doc.body.style.setProperty('--mobile-nav-height',height()+'px');
+    const el=sheet();
+    cachedHeight=mobile()&&el&&el.classList.contains('open')?el.offsetHeight:0;
+    doc.body.style.setProperty('--mobile-nav-height',cachedHeight+'px');
   }
   function syncStep(step,index,total){
     const title=doc.getElementById('mobileNavCurrentText');
