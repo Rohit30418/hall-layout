@@ -1,0 +1,23 @@
+name: Hall Navigation Checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  navigation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check assets/js/app.js
+          node --check assets/js/navigation-guide.js
+      - name: Route and smart guide tests
+        run: node --test tests/directions.test.cjs tests/navigation-guide.test.cjs
