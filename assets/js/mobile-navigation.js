@@ -103,7 +103,7 @@
   function init(){
     const el=sheet(),btn=toggle();
     if(!el||!btn)return;
-    btn.addEventListener('click',toggleExpanded);
+    btn.addEventListener('click',()=>{if(Date.now()<(root.__mobileNavSwipeUntil||0))return;toggleExpanded();});
     btn.addEventListener('keydown',e=>{
       if(e.key==='ArrowUp'){e.preventDefault();setExpanded(true);}
       else if(e.key==='ArrowDown'){e.preventDefault();setExpanded(false);}
