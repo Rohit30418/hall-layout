@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/css/base.css?v=situm-style-nav-v12" />
 <link rel="stylesheet" href="assets/css/ui-wow.css?v=situm-style-nav-v12" />
+<link rel="stylesheet" href="assets/css/navigation-guide.css?v=smart-guide-v1" />
 </head>
 <body>
 <datalist id="stallList"></datalist>
@@ -188,6 +189,19 @@
     </div>
     <div class="drawer-progress"><div class="drawer-progress-fill" id="drawerProgressFill" style="width:0%"></div></div>
   </div>
+  <div class="smart-guide-tools" role="group" aria-label="Step-by-step navigation tools">
+    <div class="smart-guide-caption">
+      <strong><i class="fa fa-wand-magic-sparkles" aria-hidden="true"></i> Easy directions</strong>
+      <span>Tap a step to see its exact section on the map</span>
+    </div>
+    <button type="button" class="smart-guide-action" id="btnVoiceGuide" onclick="toggleVoiceGuidance()" aria-pressed="false" title="Read steps aloud">
+      <i class="fa fa-volume-xmark" aria-hidden="true"></i> Listen
+    </button>
+    <button type="button" class="smart-guide-action" id="btnRepeatStep" onclick="readCurrentStep()" title="Replay current instruction" aria-label="Replay current instruction">
+      <i class="fa fa-rotate-right" aria-hidden="true"></i> Replay
+    </button>
+  </div>
+  <div class="smart-guide-status" id="voiceGuideStatus" aria-live="polite">Tap Listen for spoken directions.</div>
   <div class="drawer-steps" id="drawerSteps"></div>
   <div class="drawer-step-controls">
     <button class="nav-step-btn" id="btnPrevStep" onclick="navStepPrev()" disabled><i class="fa fa-arrow-left"></i> Prev</button>
@@ -214,7 +228,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
-<script src="assets/js/app.js?v=straight-aisle-v14"></script>
+<script src="assets/js/navigation-guide.js?v=smart-guide-v1"></script>
+<script src="assets/js/app.js?v=smart-guide-v1"></script>
 <script src="assets/js/ui-wow.js?v=situm-style-nav-v12"></script>
 </body>
 </html>
