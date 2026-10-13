@@ -368,3 +368,121 @@ body.nav-drawer-visible #nav-fab { display:none !important; }
     min-height:55px;
   }
 }
+
+
+/* Minimal map/navigation UI v5: the route, not the controls, is the focus. */
+.expo-sponsor-strip { display:none !important; }
+.map-top-chips {
+  top:calc(var(--header-h) + 13px);
+  gap:8px;
+  right:auto;
+  max-width:calc(100vw - 86px);
+  padding:1px 2px 5px;
+}
+.map-top-chips .map-chip {
+  padding:10px 14px;
+  min-height:40px;
+  border-radius:12px;
+  box-shadow:0 3px 9px rgba(15,35,65,.08);
+}
+#fps-indicator { display:none !important; }
+#nav-drawer.steps-expanded .drawer-header {
+  border:0;
+  border-radius:17px 17px 0 0;
+  flex:0 0 auto;
+}
+#nav-drawer.steps-expanded .drawer-header-top {
+  padding:16px 18px 9px;
+}
+#nav-drawer.steps-expanded .drawer-title {
+  font-size:16px;
+  letter-spacing:-.3px;
+}
+#nav-drawer.steps-expanded .drawer-title i { margin-right:8px; color:#1d4ed8; }
+#nav-drawer.steps-expanded .drawer-route-row {
+  padding:2px 18px 12px;
+}
+#nav-drawer.steps-expanded .drawer-summary {
+  padding:0 18px 15px;
+  color:#60718c;
+}
+#nav-drawer.steps-expanded .drawer-steps {
+  display:block;
+  min-height:0;
+  max-height:min(62vh,545px);
+  padding:11px 15px 13px;
+  border-top:1px solid #edf1f7;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+#nav-drawer.steps-expanded .nav-step {
+  position:relative;
+  padding:13px 12px;
+  margin-bottom:8px;
+  border:1px solid #e5ecf5;
+  background:#fff;
+  border-radius:13px;
+  min-height:68px;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+#nav-drawer.steps-expanded .nav-step:last-child { margin-bottom:0; }
+#nav-drawer.steps-expanded .nav-step:hover { background:#f7faff; border-color:#cbdcf5; }
+#nav-drawer.steps-expanded .nav-step.step-active {
+  background:#eff6ff;
+  border-color:#a9c8ff;
+  box-shadow:inset 3px 0 0 #2563eb;
+}
+#nav-drawer.steps-expanded .step-main {
+  font:800 13px/1.45 Inter,Arial,sans-serif;
+  color:#152747;
+}
+#nav-drawer.steps-expanded .step-sub {
+  margin-top:4px;
+  color:#718198;
+  font:600 11px/1.4 Inter,Arial,sans-serif;
+}
+#nav-drawer.steps-expanded .step-icon {
+  flex:0 0 35px;
+  width:35px;
+  height:35px;
+  font-size:14px;
+}
+#nav-drawer.steps-expanded .step-num { color:#8393aa; font-size:11px; }
+#nav-drawer.steps-expanded .nav-step:focus-visible { outline:3px solid #60a5fa; outline-offset:2px; }
+#nav-drawer .drawer-clear {
+  color:#536781;
+  background:transparent;
+  padding:7px 10px;
+  border-radius:9px;
+}
+#nav-drawer .drawer-clear:hover { background:#fef2f2; color:#be123c; }
+@media (min-width:769px) {
+  #nav-drawer.steps-expanded,
+  #nav-drawer.steps-expanded.open {
+    top:calc(var(--header-h) + 72px);
+    left:16px;
+    right:auto;
+    width:370px;
+    max-width:min(370px, calc(100vw - 32px));
+    max-height:calc(100vh - var(--header-h) - 88px);
+    border:1px solid #e4eaf4;
+    border-radius:18px;
+    background:rgba(255,255,255,.98);
+  }
+}
+@media (max-width:768px) {
+  #nav-drawer.steps-expanded,
+  #nav-drawer.steps-expanded.open {
+    top:auto;
+    max-height:min(78vh,700px);
+  }
+  #nav-drawer.steps-expanded .drawer-steps {
+    max-height:min(54vh,465px);
+    padding:8px 11px 12px;
+  }
+  #nav-drawer.steps-expanded .nav-step {
+    min-height:61px;
+    padding:10px 11px;
+  }
+  .map-top-chips { top:calc(var(--header-h) + 10px); left:10px; }
+}
