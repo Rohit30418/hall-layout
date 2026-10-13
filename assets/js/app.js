@@ -2242,8 +2242,10 @@ function buildNavGrid(excludeFrom, excludeTo) {
 }
 
 function routeObstaclePenalty(grid, cols, rows, c, r) {
-  // Soft cost keeps the line away from stall walls without pushing it too far into outer areas.
-  // Check only immediate neighbours (distance 1) to avoid over-weighting aisle centres.
+  // Hard obstacles/clearance are already blocked in buildNavGrid().
+  // This is only a gentle preference for staying off stall edges. The old
+  // 4-10 units PER CELL overwhelmed the turn penalty, creating zigzags
+  // through otherwise straight, unobstructed exhibition aisles.
   let penalty = 0;
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
@@ -2251,11 +2253,11 @@ function routeObstaclePenalty(grid, cols, rows, c, r) {
       const nc = c + dx, nr = r + dy;
       if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
       if (grid[nr * cols + nc] === 1) {
-        penalty += (Math.abs(dx) + Math.abs(dy) === 1) ? 4 : 2;
+        penalty += (Math.abs(dx) + Math.abs(dy) === 1) ? 0.2 : 0.08;
       }
     }
   }
-  return Math.min(10, penalty);
+  return Math.min(0.8, penalty);
 }
 
 function aStar2(sx, sy, ex, ey, grid, cols, rows) {
@@ -2267,7 +2269,7 @@ function aStar2(sx, sy, ex, ey, grid, cols, rows) {
   // penalty can remove needless 1-cell zigzags without hiding actual turns.
   // All moves stay on walkable grid cells: no diagonal stall cut-throughs.
   const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-  const TURN_COST = 8;
+  const TURN_COST = 16;
   const count = cols * rows * 4;
   const gCost = new Float64Array(count).fill(Infinity);
   const parent = new Int32Array(count).fill(-1);
@@ -2522,20 +2524,51 @@ function nearestWalkable(wx, wy, grid, cols, rows, predicate = null, maxRadiusCe
   return null;
 }
 
-function simplifyGridCellsToWaypoints(cells) {
-  if (!cells || cells.length < 2) return (cells || []).map(p => cellToWorld(p.x ?? p.c, p.y ?? p.r));
-  const keep = [cells[0]];
+// Grid-verified, orthogonal line check. Never straight-line across blocked
+// cells: blocked cells contain stalls, clearance buffers and non-walk zones.
+function clearStraightGridRun(a, b, grid, cols, rows) {
+  if (a.x !== b.x && a.y !== b.y) return false;
+  const dx = Math.sign(b.x - a.x), dy = Math.sign(b.y - a.y);
+  const len = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+  for (let k = 0; k <= len; k++) {
+    const x = a.x + k * dx, y = a.y + k * dy;
+    if (x < 0 || y < 0 || x >= cols || y >= rows || grid[y * cols + x]) return false;
+  }
+  return true;
+}
+
+// Removes surplus stair-steps and doglegs from the real navigation path,
+// not only from its drawing. Each shortcut is checked against the walking
+// grid before it is accepted, so route geometry and spoken turns still agree.
+function simplifyGridCellsToWaypoints(cells, grid, cols, rows) {
+  if (!cells || !cells.length) return [];
+  const points = cells.map(p => ({ x: p.x ?? p.c, y: p.y ?? p.r }));
+  if (points.length < 2) return points.map(p => cellToWorld(p.x, p.y));
+
+  const keep = [points[0]];
   let lastDir = null;
-  for (let i = 1; i < cells.length; i++) {
-    const a = cells[i - 1], b = cells[i];
-    const dir = { x: Math.sign((b.x ?? b.c) - (a.x ?? a.c)), y: Math.sign((b.y ?? b.r) - (a.y ?? a.r)) };
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i];
+    const dir = { x: Math.sign(b.x - a.x), y: Math.sign(b.y - a.y) };
     if (lastDir && (dir.x !== lastDir.x || dir.y !== lastDir.y)) keep.push(a);
     lastDir = dir;
   }
-  keep.push(cells[cells.length - 1]);
-  let pts = keep.map(p => cellToWorld(p.x ?? p.c, p.y ?? p.r));
-  pts = normalizeRoutePoints(pts);
-  return pts;
+  keep.push(points[points.length - 1]);
+
+  if (grid && cols && rows) {
+    // A* may briefly shift one grid row to avoid a small proximity cost, then
+    // shift right back. Remove such doglegs if a SINGLE unobstructed straight
+    // grid run connects its endpoints. It remains an orthogonal route.
+    for (let i = 0; i < keep.length - 2; i++) {
+      for (let j = keep.length - 1; j >= i + 2; j--) {
+        if (clearStraightGridRun(keep[i], keep[j], grid, cols, rows)) {
+          keep.splice(i + 1, j - i - 1);
+          break;
+        }
+      }
+    }
+  }
+  return normalizeRoutePoints(keep.map(p => cellToWorld(p.x, p.y)));
 }
 
 function normalizeRoutePoints(points) {
@@ -2613,7 +2646,7 @@ function buildRouteWaypoints(fromD, toD) {
   const gridPath = aStar2(fCell.c, fCell.r, tCell.c, tCell.r, grid, cols, rows);
   if (!gridPath.length) return [];
   const cells = [{ x: fCell.c, y: fCell.r }, ...gridPath.map(p => ({ x: p.x, y: p.y }))];
-  const aislePts = simplifyGridCellsToWaypoints(cells);
+  const aislePts = simplifyGridCellsToWaypoints(cells, grid, cols, rows);
   let finalPts = normalizeRoutePoints([fromEntry, ...aislePts, toEntry]);
 
   // Final safety: if a simplified visual segment somehow crosses a stall, fall back to unsimplified grid points.
