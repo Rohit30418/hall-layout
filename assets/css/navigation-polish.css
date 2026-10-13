@@ -271,3 +271,24 @@ body.nav-drawer-visible #nav-fab { display:none !important; }
 @media (prefers-reduced-motion:reduce) {
   #nav-drawer .nav-step, #nav-drawer .nav-step-btn { transition:none; }
 }
+
+
+/* Matching surface polish across the map toolbar — presentation only. */
+@media (min-width:769px) {
+  .header { border-radius:17px; background:rgba(255,255,255,.97); border:1px solid #e6edf5; box-shadow:0 6px 22px rgba(23,44,79,.065); }
+  .header-search-input { background:#f8fbff; border:1px solid #e5eefa; box-shadow:none; border-radius:13px; }
+  .header-search-input:focus { background:#fff; border-color:#7aa7f4; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+}
+.expo-sponsor-strip { gap:9px; padding-top:5px; }
+.expo-sponsor-card { border-radius:11px; box-shadow:0 3px 9px rgba(23,44,79,.045); border-color:#e5eaf3; }
+.expo-sponsor-card:hover { box-shadow:0 6px 14px rgba(23,44,79,.09); }
+.map-top-chips { gap:7px; }
+.map-chip { border-color:#e0e8f3; box-shadow:0 3px 10px rgba(23,44,79,.065); padding:10px 13px; }
+.map-chip.primary { box-shadow:0 5px 12px rgba(29,78,216,.15); }
+.zoom-btn { background:#fff; border-color:#e3eaf4; box-shadow:0 4px 12px rgba(20,42,78,.08); }
+.zoom-btn:focus-visible, .map-chip:focus-visible { outline:3px solid #93c5fd; outline-offset:2px; }
+#nav-drawer, #nav-drawer.open { box-shadow:0 16px 38px rgba(21,44,82,.16) !important; }
+@media (max-width:768px) {
+  #nav-drawer, #nav-drawer.open { box-shadow:0 -12px 32px rgba(21,44,82,.14) !important; }
+  .header { box-shadow:0 3px 12px rgba(23,44,79,.055); }
+}
