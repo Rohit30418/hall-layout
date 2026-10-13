@@ -1054,6 +1054,43 @@ function drawRoute2d() {
   ctx.stroke();
   ctx.setLineDash([]);
 
+  // Highlight the exact route segment described by the selected instruction.
+  // A tiny bend is shown as a turn marker instead of an invisible 1 m arrow.
+  const active = navStepsData[currentNavStepIdx];
+  if (active && Number.isInteger(active.pathStartIndex) && Number.isInteger(active.pathEndIndex)) {
+    const a = pts[active.pathStartIndex], b = pts[active.pathEndIndex];
+    if (a && b) {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const length = Math.hypot(dx, dy);
+      ctx.save();
+      ctx.setLineDash([]);
+      if (length > 0.1) {
+        ctx.globalAlpha = 0.88;
+        ctx.strokeStyle = '#0ea5e9';
+        ctx.lineWidth = Math.max(5, 5 * Math.min(cam2.zoom, 1.4));
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      // The circle denotes where the current turn/segment starts on the map.
+      const point = active.type === 'end' ? b : a;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fbbf24';
+      ctx.strokeStyle = '#1e3a8a';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      if (length > 20) {
+        const ux = dx / length, uy = dy / length;
+        const x = a.x + dx * 0.68, y = a.y + dy * 0.68;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(x + ux * 8, y + uy * 8);
+        ctx.lineTo(x - ux * 5 - uy * 5, y - uy * 5 + ux * 5);
+        ctx.lineTo(x - ux * 5 + uy * 5, y - uy * 5 - ux * 5);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   // Direction pulse dots.
   const total = routePath2d.reduce((sum, p, i) => i ? sum + Math.hypot(p.x - routePath2d[i - 1].x, p.y - routePath2d[i - 1].y) : 0, 0);
   if (total > 0) {
@@ -2223,66 +2260,81 @@ function routeObstaclePenalty(grid, cols, rows, c, r) {
 
 function aStar2(sx, sy, ex, ey, grid, cols, rows) {
   if (sx < 0 || sx >= cols || sy < 0 || sy >= rows || ex < 0 || ex >= cols || ey < 0 || ey >= rows) return [];
-  const INF = 1e9;
-  const gCost = new Float32Array(cols * rows).fill(INF);
-  const parent = new Int32Array(cols * rows).fill(-1);
-  const closed = new Uint8Array(cols * rows);
-  const KEY = (c, r) => r * cols + c;
-  gCost[KEY(sx, sy)] = 0;
+  if (grid[sy * cols + sx] || grid[ey * cols + ex]) return [];
+  if (sx === ex && sy === ey) return [];
 
-  // Min-heap for open set — O(log n) push/pop for true optimal shortest path.
+  // Search (cell, incoming direction), not just cell. That way a modest turn
+  // penalty can remove needless 1-cell zigzags without hiding actual turns.
+  // All moves stay on walkable grid cells: no diagonal stall cut-throughs.
+  const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const TURN_COST = 8;
+  const count = cols * rows * 4;
+  const gCost = new Float64Array(count).fill(Infinity);
+  const parent = new Int32Array(count).fill(-1);
+  const closed = new Uint8Array(count);
+  const key = (c, r, dir) => ((r * cols + c) * 4 + dir);
   const heap = [];
-  const heapPush = (node) => {
-    heap.push(node);
-    let i = heap.length - 1;
-    while (i > 0) {
-      const parent = (i - 1) >> 1;
-      if (heap[parent].f <= heap[i].f) break;
-      [heap[parent], heap[i]] = [heap[i], heap[parent]]; i = parent;
+  const push = item => {
+    heap.push(item);
+    for (let i = heap.length - 1; i > 0;) {
+      const pi = (i - 1) >> 1;
+      if (heap[pi].f <= heap[i].f) break;
+      [heap[pi], heap[i]] = [heap[i], heap[pi]];
+      i = pi;
     }
   };
-  const heapPop = () => {
-    const top = heap[0]; const last = heap.pop();
-    if (heap.length) { heap[0] = last; let i = 0;
-      while (true) { let s = i, l = 2*i+1, r = 2*i+2;
+  const pop = () => {
+    const top = heap[0], last = heap.pop();
+    if (heap.length) {
+      heap[0] = last;
+      for (let i = 0;;) {
+        let s = i, l = i * 2 + 1, r = l + 1;
         if (l < heap.length && heap[l].f < heap[s].f) s = l;
         if (r < heap.length && heap[r].f < heap[s].f) s = r;
-        if (s === i) break; [heap[s], heap[i]] = [heap[i], heap[s]]; i = s; }
+        if (s === i) break;
+        [heap[i], heap[s]] = [heap[s], heap[i]];
+        i = s;
+      }
     }
     return top;
   };
 
-  heapPush({ c: sx, r: sy, f: 0 });
-  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  // Initial heading is unknown: starting in any direction has no turn cost.
+  for (let d = 0; d < 4; d++) {
+    const k = key(sx, sy, d);
+    gCost[k] = 0;
+    push({ c: sx, r: sy, dir: d, k, f: Math.abs(ex - sx) + Math.abs(ey - sy) });
+  }
 
   while (heap.length) {
-    const { c, r } = heapPop();
-    const k = KEY(c, r);
-    if (closed[k]) continue;
-    closed[k] = 1;
-    if (c === ex && r === ey) {
+    const item = pop();
+    if (closed[item.k]) continue;
+    closed[item.k] = 1;
+    if (item.c === ex && item.r === ey) {
       const path = [];
-      let cur = k;
-      while (cur !== KEY(sx, sy)) {
-        const pc = cur % cols, pr = Math.floor(cur / cols);
-        path.unshift({ x: pc, y: pr });
+      let cur = item.k;
+      while (parent[cur] !== -1) {
+        const cell = Math.floor(cur / 4);
+        path.push({ x: cell % cols, y: Math.floor(cell / cols) });
         cur = parent[cur];
       }
+      path.reverse();
       return path;
     }
-    const cg = gCost[k];
-    for (const [dc, dr] of dirs) {
-      const nc = c + dc, nr = r + dr;
-      if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
-      const nk = KEY(nc, nr);
-      if (closed[nk] || grid[nk] === 1) continue;
-      const ng = cg + 1 + routeObstaclePenalty(grid, cols, rows, nc, nr);
-      if (ng < gCost[nk]) {
-        gCost[nk] = ng;
-        parent[nk] = k;
-        const h = Math.abs(ex - nc) + Math.abs(ey - nr);
-        heapPush({ c: nc, r: nr, f: ng + h });
-      }
+
+    for (let d = 0; d < 4; d++) {
+      const nc = item.c + dirs[d][0], nr = item.r + dirs[d][1];
+      if (nc < 0 || nc >= cols || nr < 0 || nr >= rows || grid[nr * cols + nc]) continue;
+      const nk = key(nc, nr, d);
+      if (closed[nk]) continue;
+      const turn = d !== item.dir ? TURN_COST : 0;
+      const reverse = d === (item.dir + 2) % 4 ? TURN_COST : 0;
+      const nextG = gCost[item.k] + 1 + routeObstaclePenalty(grid, cols, rows, nc, nr) + turn + reverse;
+      if (nextG >= gCost[nk]) continue;
+      gCost[nk] = nextG;
+      parent[nk] = item.k;
+      const heuristic = Math.abs(ex - nc) + Math.abs(ey - nr);
+      push({ c: nc, r: nr, dir: d, k: nk, f: nextG + heuristic });
     }
   }
   return [];
@@ -2488,17 +2540,21 @@ function simplifyGridCellsToWaypoints(cells) {
 
 function normalizeRoutePoints(points) {
   const out = [];
-  for (const p of points) {
+  for (const p of (points || [])) {
     if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
     const last = out[out.length - 1];
-    if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 2) out.push({ x: p.x, y: p.y });
+    if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 0.01) out.push({ x: p.x, y: p.y });
   }
-  // Remove unnecessary collinear middle points while preserving sharp right-angle turns.
+  // Merge only forward-collinear legs. Opposite-direction legs are real
+  // reversals and must not be removed from a route or from its directions.
   for (let i = out.length - 2; i >= 1; i--) {
     const a = out[i - 1], b = out[i], c = out[i + 1];
-    const sameX = Math.abs(a.x - b.x) < 2 && Math.abs(b.x - c.x) < 2;
-    const sameY = Math.abs(a.y - b.y) < 2 && Math.abs(b.y - c.y) < 2;
-    if (sameX || sameY) out.splice(i, 1);
+    const abx = b.x - a.x, aby = b.y - a.y;
+    const bcx = c.x - b.x, bcy = c.y - b.y;
+    const cross = abx * bcy - aby * bcx;
+    const dot = abx * bcx + aby * bcy;
+    const scale = Math.hypot(abx, aby) * Math.hypot(bcx, bcy);
+    if (scale > 0 && Math.abs(cross) <= scale * 0.000001 && dot > 0) out.splice(i, 1);
   }
   return out;
 }
@@ -2568,7 +2624,7 @@ function buildRouteWaypoints(fromD, toD) {
 
   // If even raw A* would visually cross a booth, reject instead of drawing a wrong route.
   if (!routeInsideBounds(finalPts) || routeCrossesAnyStall(finalPts)) return [];
-  return finalPts;
+  return compressDirectionPoints(finalPts);
 }
 /* ══════════════════════════════════════════
    DIRECTIONS ENGINE — CLEAN AISLE INSTRUCTIONS
@@ -2701,12 +2757,13 @@ function straightStepText(passList) {
 
 function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   if (!waypoints || waypoints.length < 2) return [];
-  const pts = compressDirectionPoints(waypoints);
+  // Waypoints here are the EXACT points used by the 2D/3D line.
+  const pts = waypoints;
   const steps = [];
-  steps.push({ type: 'start', icon: 'fa-circle-dot', iconClass: 'si-start', main: `Start at ${fromLabel}`, sub: 'Move to the nearest aisle', landmark: null });
+  steps.push({ type: 'start', icon: 'fa-circle-dot', iconClass: 'si-start', main: `Start at ${fromLabel}`, sub: 'Move to the nearest aisle', landmark: null, pathStartIndex: 0, pathEndIndex: 0 });
 
   if (pts.length < 2) {
-    steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `Arrive at ${toLabel}`, sub: null, landmark: null });
+    steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `Arrive at ${toLabel}`, sub: null, landmark: null, pathStartIndex: 0, pathEndIndex: 0 });
     return steps;
   }
 
@@ -2737,20 +2794,15 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
 
     const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
     const landmark = nearestStallLabel(midX, midY, [fromLabel, toLabel]);
-    steps.push({ type, icon, iconClass, main, sub: landmark ? `near ${landmark}` : null, landmark: null });
+    steps.push({ type, icon, iconClass, main, sub: landmark ? `near ${landmark}` : null, landmark: null, pathStartIndex: i - 1, pathEndIndex: i });
   }
 
   const sideHint = destinationSideHint(pts, meta.toD);
-  steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${sideHint}`, sub: `You've arrived`, landmark: null });
+  steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${sideHint}`, sub: `You've arrived`, landmark: null, pathStartIndex: pts.length - 1, pathEndIndex: pts.length - 1 });
 
-  // Remove tiny/duplicate straight noise after compression.
-  const cleaned = [];
-  for (const s of steps) {
-    const last = cleaned[cleaned.length - 1];
-    if (last && last.type === 'straight' && s.type === 'straight' && last.main === s.main) continue;
-    cleaned.push(s);
-  }
-  return cleaned;
+  // Don't drop segments after assigning indexes: one instruction maps to
+  // exactly one displayed line segment, including short final approaches.
+  return steps;
 }
 
 function capitalise(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
