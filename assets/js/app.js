@@ -1054,38 +1054,62 @@ function drawRoute2d() {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Highlight the exact route segment described by the selected instruction.
-  // A tiny bend is shown as a turn marker instead of an invisible 1 m arrow.
+  // Draw arrows directly on the actual route polyline. They use the same
+  // points and heading as the directions, never independent guessed turns.
+  let arrowCount = 0;
+  for (let i = 1; i < pts.length && arrowCount < 12; i++) {
+    const a = pts[i - 1], b = pts[i];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (Math.hypot(dx, dy) < 56) continue;
+    const x = a.x + dx * 0.6, y = a.y + dy * 0.6;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.fillStyle = '#1e40af';
+    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0);
+    ctx.moveTo(1, -4); ctx.lineTo(5, 0); ctx.lineTo(1, 4); ctx.stroke();
+    ctx.restore();
+    arrowCount++;
+  }
+
+  // Multi-action instructions highlight EVERY segment in their exact range,
+  // so combining two directions cannot disconnect the text from the line.
   const active = navStepsData[currentNavStepIdx];
   if (active && Number.isInteger(active.pathStartIndex) && Number.isInteger(active.pathEndIndex)) {
-    const a = pts[active.pathStartIndex], b = pts[active.pathEndIndex];
-    if (a && b) {
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const length = Math.hypot(dx, dy);
+    const start = Math.max(0, active.pathStartIndex);
+    const end = Math.min(pts.length - 1, active.pathEndIndex);
+    if (start <= end && pts[start] && pts[end]) {
       ctx.save();
+      ctx.globalAlpha = 0.92;
       ctx.setLineDash([]);
-      if (length > 0.1) {
-        ctx.globalAlpha = 0.88;
-        ctx.strokeStyle = '#0ea5e9';
-        ctx.lineWidth = Math.max(5, 5 * Math.min(cam2.zoom, 1.4));
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      }
-      // The circle denotes where the current turn/segment starts on the map.
-      const point = active.type === 'end' ? b : a;
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(pts[start].x, pts[start].y);
+      for (let i = start + 1; i <= end; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
       ctx.globalAlpha = 1;
+      const mark = active.type === 'end' ? pts[end] : pts[start];
       ctx.fillStyle = '#fbbf24';
       ctx.strokeStyle = '#1e3a8a';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
-      if (length > 20) {
-        const ux = dx / length, uy = dy / length;
-        const x = a.x + dx * 0.68, y = a.y + dy * 0.68;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(mark.x, mark.y, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      let longest = 0, selected = null;
+      for (let i = start + 1; i <= end; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        if (len > longest) { longest = len; selected = [a, b]; }
+      }
+      if (selected && longest > 20) {
+        const [a, b] = selected;
+        const theta = Math.atan2(b.y - a.y, b.x - a.x);
+        ctx.translate(a.x + (b.x - a.x) * 0.5, a.y + (b.y - a.y) * 0.5);
+        ctx.rotate(theta);
         ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.moveTo(x + ux * 8, y + uy * 8);
-        ctx.lineTo(x - ux * 5 - uy * 5, y - uy * 5 + ux * 5);
-        ctx.lineTo(x - ux * 5 + uy * 5, y - uy * 5 - ux * 5);
-        ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-5, -6); ctx.lineTo(-5, 6); ctx.closePath(); ctx.fill();
       }
       ctx.restore();
     }
@@ -2833,27 +2857,98 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   const sideHint = destinationSideHint(pts, meta.toD);
   steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${sideHint}`, sub: `You've arrived`, landmark: null, pathStartIndex: pts.length - 1, pathEndIndex: pts.length - 1 });
 
-  // Don't drop segments after assigning indexes: one instruction maps to
-  // exactly one displayed line segment, including short final approaches.
+  // An offline guide combines a short approach with the following action,
+  // preserving every real turn and original path indices. If the optional
+  // helper isn't loaded, the existing detailed instructions still work.
+  if (typeof window !== 'undefined' && window.HallNavGuide) {
+    return window.HallNavGuide.enhanceSteps(steps, pts, estimateMetersPerUnit());
+  }
   return steps;
 }
 
 function capitalise(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
+// Voice is opt-in and uses the browser's built-in speech engine. No
+// microphone, geolocation permission, network request, or AI API is needed.
+let voiceGuidanceOn = false;
+function stopVoiceGuidance() {
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (_) {}
+}
+function setVoiceGuideStatus(message) {
+  const label = document.getElementById('voiceGuideStatus');
+  if (label) label.textContent = message;
+}
+function updateVoiceGuideButtons() {
+  const btn = document.getElementById('btnVoiceGuide');
+  const repeat = document.getElementById('btnRepeatStep');
+  const supported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  if (btn) {
+    btn.disabled = !supported;
+    btn.setAttribute('aria-pressed', String(voiceGuidanceOn));
+    btn.classList.toggle('is-active', voiceGuidanceOn);
+    btn.innerHTML = voiceGuidanceOn
+      ? '<i class="fa fa-volume-high" aria-hidden="true"></i> Voice on'
+      : '<i class="fa fa-volume-xmark" aria-hidden="true"></i> Listen';
+    btn.title = supported ? 'Toggle spoken step-by-step directions' : 'Speech is unavailable in this browser';
+  }
+  if (repeat) repeat.disabled = !supported || !navStepsData.length;
+  if (!supported) setVoiceGuideStatus('Voice directions are not supported in this browser.');
+  else if (!voiceGuidanceOn) setVoiceGuideStatus('Tap Listen for spoken directions.');
+}
+function readCurrentStep() {
+  const step = navStepsData[currentNavStepIdx];
+  if (!step) return;
+  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+    setVoiceGuideStatus('Voice directions are not supported in this browser.');
+    return;
+  }
+  stopVoiceGuidance();
+  try {
+    const spoken = String(step.spoken || step.main || '');
+    const extra = step.sub ? '. ' + String(step.sub) : '';
+    const utterance = new SpeechSynthesisUtterance(spoken + extra);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    utterance.onerror = function () {
+      setVoiceGuideStatus('Audio could not play. You can still read the directions.');
+    };
+    window.speechSynthesis.speak(utterance);
+    setVoiceGuideStatus('Reading step ' + (currentNavStepIdx + 1) + ' of ' + navStepsData.length);
+  } catch (_) {
+    setVoiceGuideStatus('Audio could not play. You can still read the directions.');
+  }
+}
+function toggleVoiceGuidance() {
+  voiceGuidanceOn = !voiceGuidanceOn;
+  if (!voiceGuidanceOn) stopVoiceGuidance();
+  updateVoiceGuideButtons();
+  if (voiceGuidanceOn) readCurrentStep();
+}
+function setNavStep(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= navStepsData.length) return;
+  currentNavStepIdx = index;
+  renderDrawerSteps();
+  if (voiceGuidanceOn) readCurrentStep();
+  else stopVoiceGuidance();
+}
+
 /* ══════════════════════════════════════════
    NAV PANEL
 ══════════════════════════════════════════ */
 function renderNavPanel(steps, fromLabel, toLabel) {
+  stopVoiceGuidance();
   navStepsData = steps; currentNavStepIdx = 0;
   document.getElementById('navFabFrom').textContent = fromLabel;
   document.getElementById('navFabTo').textContent   = toLabel;
   document.getElementById('fabStepBadge').textContent = steps.length + ' steps';
   document.getElementById('navDrawerFrom').textContent = fromLabel;
   document.getElementById('navDrawerTo').textContent   = toLabel;
-  const turns = steps.filter(s => s.type !== 'start' && s.type !== 'end' && s.type !== 'straight').length;
+  const turns = steps.reduce((sum, step) => sum + (Number.isInteger(step.turnsCount) ? step.turnsCount : (['left','right','uturn'].includes(step.type) ? 1 : 0)), 0);
   document.getElementById('drawerStepCount').textContent   = routeMetrics.timeLabel || (steps.length + ' steps');
   document.getElementById('drawerSummaryText').textContent = `${routeMetrics.distanceLabel || ''}${routeMetrics.distanceLabel ? ' · ' : ''}${turns} turn${turns !== 1 ? 's' : ''} · ${_usingWalkZones ? 'shortest aisle route' : 'aisle-safe route'}`;
   document.body.classList.add('route-active');
   renderDrawerSteps();
+  updateVoiceGuideButtons();
   document.getElementById('nav-fab').classList.add('show');
   openNavDrawer();
   // Keep the direction drawer open. Auto-closing made steps disappear while users were reading/clicking them.
@@ -2861,20 +2956,49 @@ function renderNavPanel(steps, fromLabel, toLabel) {
 
 function renderDrawerSteps() {
   const container = document.getElementById('drawerSteps');
-  container.innerHTML = '';
+  // Build text with textContent; company/stall names come from external API
+  // data and should never be interpreted as executable HTML.
+  container.replaceChildren();
   navStepsData.forEach((step, idx) => {
     const el = document.createElement('div');
     el.className = 'nav-step' + (idx === currentNavStepIdx ? ' step-active' : '');
     el.dataset.idx = idx;
-    el.innerHTML = `
-      <div class="step-icon ${step.iconClass}"><i class="fa ${step.icon}"></i></div>
-      <div class="step-body">
-        <div class="step-main">${step.main}</div>
-        ${step.sub ? `<div class="step-sub">${step.sub}</div>` : ''}
-        ${step.landmark ? `<div class="step-landmark"><i class="fa fa-location-dot"></i> near ${step.landmark}</div>` : ''}
-      </div>
-      <div class="step-num">${idx + 1}</div>`;
-    el.addEventListener('click', () => { currentNavStepIdx = idx; renderDrawerSteps(); updateNavControls(); });
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    el.setAttribute('aria-current', idx === currentNavStepIdx ? 'step' : 'false');
+    el.setAttribute('aria-label', 'Step ' + (idx + 1) + ': ' + (step.main || 'Continue'));
+    const ico = document.createElement('div');
+    ico.className = 'step-icon ' + step.iconClass;
+    const icon = document.createElement('i');
+    icon.className = 'fa ' + step.icon;
+    icon.setAttribute('aria-hidden', 'true');
+    ico.appendChild(icon);
+    const body = document.createElement('div');
+    body.className = 'step-body';
+    const main = document.createElement('div');
+    main.className = 'step-main';
+    main.textContent = step.main || 'Continue';
+    body.appendChild(main);
+    if (step.sub) {
+      const sub = document.createElement('div');
+      sub.className = 'step-sub';
+      sub.textContent = step.sub;
+      body.appendChild(sub);
+    }
+    if (step.type === 'bend') {
+      const hint = document.createElement('div');
+      hint.className = 'step-hint';
+      hint.textContent = 'Two actions · highlighted together on the map';
+      body.appendChild(hint);
+    }
+    const num = document.createElement('div');
+    num.className = 'step-num';
+    num.textContent = String(idx + 1);
+    el.append(ico, body, num);
+    el.addEventListener('click', () => setNavStep(idx));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNavStep(idx); }
+    });
     container.appendChild(el);
   });
   scrollActiveStepIntoView();
@@ -2902,12 +3026,13 @@ function updateNavControls() {
 }
 
 function navStepPrev() {
-  if (currentNavStepIdx > 0) { currentNavStepIdx--; renderDrawerSteps(); updateNavControls(); }
+  if (currentNavStepIdx > 0) setNavStep(currentNavStepIdx - 1);
 }
 function navStepNext() {
-  if (currentNavStepIdx < navStepsData.length - 1) { currentNavStepIdx++; renderDrawerSteps(); updateNavControls(); }
+  if (currentNavStepIdx < navStepsData.length - 1) setNavStep(currentNavStepIdx + 1);
 }
 function hideNavFab() {
+  stopVoiceGuidance();
   document.getElementById('nav-fab').classList.remove('show');
   closeNavDrawer();
 }
