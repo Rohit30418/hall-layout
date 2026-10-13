@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="assets/css/base.css?v=situm-style-nav-v12" />
 <link rel="stylesheet" href="assets/css/ui-wow.css?v=situm-style-nav-v12" />
 <link rel="stylesheet" href="assets/css/navigation-guide.css?v=smart-guide-v1" />
-<link rel="stylesheet" href="assets/css/navigation-polish.css?v=minimal-v5" />
+<link rel="stylesheet" href="assets/css/navigation-polish.css?v=minimal-voice-v6" />
 </head>
 <body>
 <datalist id="stallList"></datalist>
@@ -188,7 +188,13 @@
     <div class="drawer-summary">
       <span class="drawer-pill" id="drawerStepCount"></span>
       <span id="drawerSummaryText"></span>
+      <button type="button" class="drawer-voice-btn" id="btnVoiceGuide"
+        onclick="toggleVoiceGuidance()" aria-label="Turn on spoken directions"
+        aria-pressed="false" title="Read the selected route step aloud">
+        <i class="fa fa-volume-high" aria-hidden="true"></i> Listen
+      </button>
     </div>
+    <span id="voiceGuideStatus" class="nav-voice-sr-only" role="status" aria-live="polite">Voice guidance off.</span>
   </div>
   <div class="drawer-steps" id="drawerSteps" aria-label="Walking instructions"></div>
 </div>
@@ -212,7 +218,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 <script src="assets/js/navigation-guide.js?v=nav-ui-v3"></script>
-<script src="assets/js/app.js?v=minimal-v5"></script>
+<script src="assets/js/app.js?v=minimal-voice-v6"></script>
 <script src="assets/js/ui-wow.js?v=minimal-v5"></script>
 </body>
 </html>
