@@ -109,21 +109,25 @@ test('no route or unavailable guide inputs fail safely', () => {
   assert.equal(enhanceSteps(null,[],1),null);
 });
 
-test('directions panel shows only route, clear and clickable instructions', () => {
+test('directions panel keeps a single optional voice button and clickable instructions', () => {
   const root = path.join(__dirname, '..');
   const html = fs.readFileSync(path.join(root,'ViewhallLayout.html'),'utf8');
   const app = fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
   const css = fs.readFileSync(path.join(root,'assets/css/navigation-polish.css'),'utf8');
   const ui = fs.readFileSync(path.join(root,'assets/js/ui-wow.js'),'utf8');
-  for(const id of ['nav-drawer','drawerSteps','navDrawerFrom','navDrawerTo','drawerStepCount','drawerSummaryText']) {
+  for(const id of ['nav-drawer','drawerSteps','navDrawerFrom','navDrawerTo','drawerStepCount','drawerSummaryText','btnVoiceGuide','voiceGuideStatus']) {
     assert.ok(html.includes('id="' + id + '"'), 'important route element: ' + id);
   }
-  for(const id of ['btnVoiceGuide','btnRepeatStep','btnToggleRouteSteps','btnPrevStep','btnNextStep','navNowTitle','navStepCounter']) {
+  for(const id of ['btnRepeatStep','btnToggleRouteSteps','btnPrevStep','btnNextStep','navNowTitle','navStepCounter']) {
     assert.ok(!html.includes('id="' + id + '"'), 'removed extra control: ' + id);
   }
   assert.ok(html.includes('id="drawerSteps" aria-label="Walking instructions"'));
-  assert.ok(html.includes('navigation-polish.css?v=minimal-v5'));
-  assert.ok(html.includes('app.js?v=minimal-v5'));
+  assert.ok(html.includes('navigation-polish.css?v=minimal-voice-v6'));
+  assert.ok(html.includes('aria-pressed="false"'));
+  assert.ok(html.includes('onclick="toggleVoiceGuidance()"'));
+  assert.ok(html.includes('class="drawer-voice-btn"'));
+  assert.ok(html.includes('role="status" aria-live="polite"'));
+  assert.ok(html.includes('app.js?v=minimal-voice-v6'));
   assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
   assert.ok(app.includes('function setNavStep(index)'));
@@ -131,7 +135,17 @@ test('directions panel shows only route, clear and clickable instructions', () =
   assert.ok(app.includes('window.HallNavGuide.enhanceSteps'));
   assert.ok(app.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'turn icons still work');
   assert.ok(app.includes('for (let i = start + 1; i <= end; i++) ctx.lineTo'), 'highlight actual route');
-  assert.ok(!app.includes('voiceGuidanceOn'));
+  assert.ok(app.includes('function toggleVoiceGuidance()'));
+  assert.ok(app.includes('function readSelectedNavStep()'));
+  assert.ok(app.includes('function stopNavVoice()'));
+  assert.ok(app.includes('voiceGuidanceOn = false'));
+  assert.ok(app.includes('readSelectedNavStep();'));
+  assert.ok(app.includes('window.speechSynthesis.cancel()'));
+  assert.ok(css.includes('#nav-drawer .drawer-voice-btn'));
+  assert.ok(!html.includes('id="btnRepeatStep"'));
+  assert.ok(!html.includes('id="btnNextStep"'));
+  assert.ok(!html.includes('id="btnPrevStep"'));
+  assert.ok(!html.includes('id="btnToggleRouteSteps"'));
   assert.ok(!app.includes('routeStepsExpanded'));
   assert.ok(!app.includes("getElementById('btnNextStep')"));
   assert.ok(css.includes('.expo-sponsor-strip { display:none !important; }'));
