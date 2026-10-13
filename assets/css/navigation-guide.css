@@ -1,0 +1,38 @@
+/* Premium offline smart navigation controls. Scope all new rules to the drawer. */
+#nav-drawer .smart-guide-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f8fbff;
+  border-bottom: 1px solid rgba(30, 58, 138, .10);
+}
+#nav-drawer .smart-guide-caption { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+#nav-drawer .smart-guide-caption strong { font-size: 12px; font-weight: 850; color: #0f172a; }
+#nav-drawer .smart-guide-caption span { font-size: 10px; color: #64748b; line-height: 1.3; }
+#nav-drawer .smart-guide-action {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 9px 11px; border: 1px solid #d7e2f6; border-radius: 10px;
+  background: #fff; color: #1e40af; font: 750 11px/1.2 Inter, Arial, sans-serif;
+  cursor: pointer; transition: background-color .15s ease, border-color .15s ease;
+}
+#nav-drawer .smart-guide-action:hover { background: #eaf2ff; border-color: #93b4fa; }
+#nav-drawer .smart-guide-action:focus-visible { outline: 3px solid #7dd3fc; outline-offset: 2px; }
+#nav-drawer .smart-guide-action.is-active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+#nav-drawer .smart-guide-action:disabled { opacity: .45; cursor: not-allowed; }
+#nav-drawer #btnRepeatStep { padding-inline: 11px; }
+#nav-drawer .smart-guide-status {
+  padding: 6px 14px 8px; font-size: 10px; line-height: 1.4;
+  background: #f8fbff; border-bottom: 1px solid rgba(30, 58, 138, .08);
+  color: #64748b;
+}
+#nav-drawer .step-hint { margin-top: 5px; color: #2563eb; font-size: 10px; font-weight: 700; }
+#nav-drawer .si-bend { background: #e9f9fc !important; color: #0e7490 !important; }
+#nav-drawer .nav-step[role="button"] { cursor: pointer; }
+#nav-drawer .nav-step[role="button"]:focus-visible { outline: 3px solid #38bdf8; outline-offset: -1px; }
+@media (max-width: 600px) {
+  #nav-drawer .smart-guide-tools { padding: 9px 11px; gap: 5px; flex-wrap: nowrap; }
+  #nav-drawer .smart-guide-caption span { display: none; }
+  #nav-drawer .smart-guide-action { padding: 9px 8px; font-size: 10px; }
+  #nav-drawer .smart-guide-status { padding: 4px 11px 7px; }
+}
