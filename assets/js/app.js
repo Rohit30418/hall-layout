@@ -2853,7 +2853,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
       const turn = humanTurn(signedTurn(headingDeg(pts[i - 2], a), headingDeg(a, b)));
       if (turn.type === 'left' || turn.type === 'right') {
         type = turn.type;
-        icon = turn.type === 'right' ? 'fa-turn-right' : 'fa-turn-left';
+        icon = turn.type === 'right' ? 'fa-arrow-right' : 'fa-arrow-left';
         iconClass = turn.type === 'right' ? 'si-right' : 'si-left';
         main = `${capitalise(turn.verb)} and go ahead for ${formatMeters(distM)}`;
       } else if (turn.type === 'uturn') {
