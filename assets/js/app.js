@@ -73,7 +73,11 @@ function swapRoute() {
 /* ══════════════════════════════════════════
    NAV DRAWER
 ══════════════════════════════════════════ */
-function openNavDrawer() { document.getElementById('nav-drawer').classList.add('open'); document.body.classList.add('nav-drawer-visible'); }
+function openNavDrawer() {
+  document.getElementById('nav-drawer').classList.add('open');
+  document.body.classList.add('nav-drawer-visible');
+  if (window.HallMobileNavigation) window.HallMobileNavigation.onOpen();
+}
 function closeNavDrawer() {
   pauseWalkPreview();
   stopNavVoice();
@@ -81,6 +85,7 @@ function closeNavDrawer() {
   updateNavVoiceButton();
   document.getElementById('nav-drawer').classList.remove('open');
   document.body.classList.remove('nav-drawer-visible');
+  if (window.HallMobileNavigation) window.HallMobileNavigation.onClose();
 }
 
 /* ══════════════════════════════════════════
@@ -1127,6 +1132,15 @@ function prepareWalkPreview(points) {
   if (!window.HallWalkPreview) return;
   walkPreviewPath = window.HallWalkPreview.buildPath(points);
   if (currentView === '3d' && walkPreviewPath) createWalkPreviewAvatar3();
+  // Expanding mobile steps changes visible map space. Snap only as much as
+  // needed to keep the current route marker above the bottom sheet.
+  if (window.HallMobileNavigation) {
+    window.HallMobileNavigation.onLayoutChange = function () {
+      if (currentView !== '2d' || !walkPreviewPath) return;
+      const walker = window.HallWalkPreview.sample(walkPreviewPath, walkPreviewDistance);
+      if (walker) window.HallMobileNavigation.follow(walker, cam2, canvas2d, true);
+    };
+  }
   syncWalkPreviewUi(true);
 }
 function toggleWalkPreview() {
@@ -1574,6 +1588,12 @@ function draw2d() {
   const loop = () => {
     if (currentView !== '2d') { raf2dId = null; return; }
     advanceWalkPreview(performance.now());
+    // The mobile camera tracks only a PLAYING simulated walk, leaving manual
+    // map pans untouched while paused. It keeps the avatar above the sheet.
+    if (walkPreviewPlaying && walkPreviewPath && window.HallMobileNavigation?.isActive()) {
+      const walker = window.HallWalkPreview.sample(walkPreviewPath, walkPreviewDistance);
+      if (walker) window.HallMobileNavigation.follow(walker, cam2, canvas2d);
+    }
     render2dFrame();
     raf2dId = requestAnimationFrame(loop);
   };
@@ -3355,6 +3375,9 @@ function renderDrawerSteps() {
   });
   scrollActiveStepIntoView();
   updateNavControls();
+  if (window.HallMobileNavigation) {
+    window.HallMobileNavigation.syncStep(navStepsData[currentNavStepIdx], currentNavStepIdx, navStepsData.length);
+  }
 }
 
 function scrollActiveStepIntoView() {
@@ -3442,6 +3465,7 @@ function calculateRoute2d(fv, tv) {
   const steps = buildDirections(pts, fromLabel, toLabel, { fromD, toD });
   renderNavPanel(steps, fromLabel, toLabel);
   prepareWalkPreview(pts);
+  if (window.HallMobileNavigation) window.HallMobileNavigation.frame(pts, cam2, canvas2d);
   closeSidebar();
 }
 
