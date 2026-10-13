@@ -2752,16 +2752,29 @@ function updateRouteMetrics(points) {
 
 
 function nearestStallLabel(wx, wy, excludeNos = []) {
-  let best = null, bestD = Infinity;
-  const excluded = excludeNos.map(x => String(x || '').toLowerCase());
+  // Use distance to the actual stall boundary, not the booth centre.
+  // Avoid labeling distant booths as landmarks across a wide aisle.
+  const excluded = new Set(excludeNos.map(x => String(x || '').trim().toLowerCase()));
+  let nearest = null;
+  let bestDistance = Infinity;
   for (const d of allStallData) {
-    if (excluded.includes(String(d.StallNo || '').toLowerCase())) continue;
-    const cx = d.dLeft + d.dWidth / 2, cy = d.dTop + d.dHeight / 2;
-    const dist = Math.hypot(wx - cx, wy - cy);
-    if (dist < bestD) { bestD = dist; best = d; }
+    const name = String(d.StallNo || '').trim();
+    if (!name || excluded.has(name.toLowerCase())) continue;
+    const x0 = d.dLeft, x1 = d.dLeft + d.dWidth;
+    const y0 = d.dTop, y1 = d.dTop + d.dHeight;
+    if (![x0, x1, y0, y1].every(Number.isFinite)) continue;
+    const dx = Math.max(x0 - wx, 0, wx - x1);
+    const dy = Math.max(y0 - wy, 0, wy - y1);
+    const distance = Math.hypot(dx, dy);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      nearest = { name, width: d.dWidth, height: d.dHeight };
+    }
   }
-  if (best && bestD < Math.max(best.dWidth, best.dHeight, 25) * 3.2) return best.StallNo;
-  return null;
+  // Be conservative: wrong landmarks are worse than no landmark.
+  if (!nearest) return null;
+  const threshold = Math.max(10, Math.min(28, Math.min(nearest.width, nearest.height) * 0.75));
+  return bestDistance <= threshold ? nearest.name : null;
 }
 
 function compressDirectionPoints(points) {
@@ -2851,7 +2864,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
 
     const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
     const landmark = nearestStallLabel(midX, midY, [fromLabel, toLabel]);
-    steps.push({ type, icon, iconClass, main, sub: landmark ? `near ${landmark}` : null, landmark: null, pathStartIndex: i - 1, pathEndIndex: i });
+    steps.push({ type, icon, iconClass, main, sub: landmark ? `Near stall ${landmark}` : null, landmark: null, pathStartIndex: i - 1, pathEndIndex: i });
   }
 
   const sideHint = destinationSideHint(pts, meta.toD);
