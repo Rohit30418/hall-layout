@@ -73,7 +73,7 @@ test('preview UI remains optional, voice remains, and both map modes use same ro
   assert.ok(html.includes('id="btnVoiceGuide"'));
   assert.ok(!html.includes('id="btnPrevStep"'));
   assert.ok(!html.includes('id="btnNextStep"'));
-  assert.ok(html.indexOf('route-avatar.js?v=walk-preview-v7')<html.indexOf('app.js?v=walk-preview-v7'));
+  assert.ok(html.indexOf('route-avatar.js?v=walk-preview-v7')<html.indexOf('app.js?v=avatar-mascot-v8'));
   assert.ok(css.includes('#nav-drawer .walk-preview-play'));
   assert.ok(app.includes('function drawWalkPreviewAvatar2d()'));
   assert.ok(app.includes('function updateWalkPreviewAvatar3(now)'));
@@ -85,4 +85,22 @@ test('preview UI remains optional, voice remains, and both map modes use same ro
   assert.ok(app.includes('function restartWalkPreview()'));
   assert.ok(app.includes('clearWalkPreview();'));
   assert.ok(app.includes('pauseWalkPreview();'));
+});
+
+
+test('2D mascot has depth and keeps body upright through turns',()=>{
+  const base=path.join(__dirname,'..');
+  const app=fs.readFileSync(path.join(base,'assets/js/app.js'),'utf8');
+  const start=app.indexOf('function drawWalkPreviewAvatar2d() {');
+  const end=app.indexOf('function updateWalkPreviewAvatar3(now)',start);
+  assert.ok(start>=0 && end>start);
+  const code=app.slice(start,end);
+  assert.ok(code.includes('ctx.createLinearGradient('));
+  assert.ok(code.includes('ctx.createRadialGradient('));
+  assert.ok(code.includes('ctx.ellipse('));
+  assert.ok(code.includes('ctx.scale(0.82, 0.82)'));
+  assert.ok(code.includes('ctx.rotate(pos.heading)'), 'small direction marker tracks route');
+  assert.ok(!code.includes('ctx.rotate(pos.heading+Math.PI/2)'), 'person stays upright on turns');
+  assert.ok(!code.includes('ctx.arc(0,0,21'), 'large old halo removed');
+  assert.ok(code.includes('walkPreviewPlaying'), 'limbs animate during playback');
 });
