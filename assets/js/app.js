@@ -2928,7 +2928,7 @@ function readCurrentStep() {
       setVoiceGuideStatus('Audio could not play. You can still read the directions.');
     };
     window.speechSynthesis.speak(utterance);
-    setVoiceGuideStatus('Reading step ' + (currentNavStepIdx + 1) + ' of ' + navStepsData.length);
+    setVoiceGuideStatus('Speaking instruction ' + (currentNavStepIdx + 1) + ' of ' + navStepsData.length);
   } catch (_) {
     setVoiceGuideStatus('Audio could not play. You can still read the directions.');
   }
@@ -2947,7 +2947,7 @@ function setNavStep(index) {
   else stopVoiceGuidance();
 }
 
-let routeStepsExpanded = false;
+let routeStepsExpanded = true; // Show the complete set of walking instructions by default.
 function toggleRouteSteps() {
   routeStepsExpanded = !routeStepsExpanded;
   updateRouteStepsVisibility();
@@ -2957,12 +2957,15 @@ function updateRouteStepsVisibility() {
   const steps = document.getElementById('drawerSteps');
   const toggle = document.getElementById('btnToggleRouteSteps');
   if (steps) steps.hidden = !routeStepsExpanded;
+  const drawer = document.getElementById('nav-drawer');
+  if (drawer) drawer.classList.toggle('steps-expanded', routeStepsExpanded);
   if (toggle) {
     toggle.setAttribute('aria-expanded', String(routeStepsExpanded));
     toggle.innerHTML = routeStepsExpanded
-      ? '<i class="fa fa-chevron-up" aria-hidden="true"></i> Hide all steps'
-      : '<i class="fa fa-list-check" aria-hidden="true"></i> Show all steps';
+      ? '<i class="fa fa-compress" aria-hidden="true"></i> Focus on one step'
+      : '<i class="fa fa-list-check" aria-hidden="true"></i> Show all directions';
   }
+  if (routeStepsExpanded && steps && !steps.hidden) scrollActiveStepIntoView();
 }
 function updateActiveNavCue() {
   const step = navStepsData[currentNavStepIdx];
@@ -2974,14 +2977,14 @@ function updateActiveNavCue() {
   if (!step) return;
   if (title) title.textContent = step.main || 'Follow the route';
   if (detail) detail.textContent = step.sub || (step.type === 'end' ? 'Destination reached' : 'Follow the blue route shown on the map');
-  if (label) label.textContent = step.type === 'start' ? 'START HERE' : step.type === 'end' ? 'DESTINATION' : 'YOUR NEXT MOVE';
+  if (label) label.textContent = step.type === 'start' ? 'START HERE' : step.type === 'end' ? 'FINAL APPROACH' : 'YOUR NEXT MOVE';
   if (marker) {
     marker.className = 'nav-now-icon nav-now-' + (['start','end','left','right','straight','bend','uturn'].includes(step.type) ? step.type : 'straight');
     const ico = marker.querySelector('i');
     if (ico) ico.className = 'fa ' + (step.icon || 'fa-arrow-up');
   }
   const next = navStepsData[currentNavStepIdx + 1];
-  if (upcoming) upcoming.textContent = next ? 'Up next: ' + (next.main || 'Continue') : 'You have reached your destination';
+  if (upcoming) upcoming.textContent = next ? 'Up next: ' + (next.main || 'Continue') : 'End of planned route — check the stall number at the location';
 }
 
 /* ══════════════════════════════════════════
@@ -2990,7 +2993,7 @@ function updateActiveNavCue() {
 function renderNavPanel(steps, fromLabel, toLabel) {
   stopVoiceGuidance();
   navStepsData = steps; currentNavStepIdx = 0;
-  routeStepsExpanded = false;
+  routeStepsExpanded = true;
   // Each new route starts silently; voice can be explicitly enabled again.
   voiceGuidanceOn = false;
   document.getElementById('navFabFrom').textContent = fromLabel;
@@ -4077,7 +4080,7 @@ function resetRouteVisualState(keepInputs = true) {
   navStepsData = [];
   currentNavStepIdx = 0;
   voiceGuidanceOn = false;
-  routeStepsExpanded = false;
+  routeStepsExpanded = true;
   document.getElementById('btnClear').style.display = 'none';
   if (!keepInputs) {
     document.getElementById('routeFrom').value = '';
