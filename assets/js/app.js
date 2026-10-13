@@ -1173,40 +1173,174 @@ function advanceWalkPreview(now) {
 }
 // Draw a tiny, direction-aware walker at a constant on-screen size.
 // Limbs swing only while the user is actually playing the preview.
+// Premium 2.5D visitor mascot. Keep the character upright like a map pin,
+// while the tiny ground arrow shows actual route heading. This prevents
+// upside-down/flattened bodies as the route turns. Canvas-only; no assets/API.
 function drawWalkPreviewAvatar2d() {
   if (!walkPreviewPath || currentView !== '2d') return;
-  const pos = window.HallWalkPreview.sample(walkPreviewPath,walkPreviewDistance);
+  const pos = window.HallWalkPreview.sample(walkPreviewPath, walkPreviewDistance);
   if (!pos) return;
-  const p = w2s(pos.x,pos.y);
-  if (p.x < -60 || p.y < -60 || p.x > canvas2d.width+60 || p.y > canvas2d.height+60) return;
-  const stride = walkPreviewPlaying ? Math.sin(walkPreviewDistance * 0.25) * 5 : 0;
+  const p = w2s(pos.x, pos.y);
+  if (p.x < -55 || p.y < -55 || p.x > canvas2d.width + 55 || p.y > canvas2d.height + 55) return;
+
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const moving = walkPreviewPlaying && !reduceMotion;
+  const gait = moving ? Math.sin(walkPreviewDistance * 0.28) : 0;
+  const lift = moving ? Math.abs(Math.sin(walkPreviewDistance * 0.28)) * 1.6 : 0;
+  const lean = moving ? Math.sin(walkPreviewDistance * 0.17) * 0.035 : 0;
+
   ctx.save();
-  ctx.translate(p.x,p.y);
-  ctx.fillStyle = 'rgba(37,99,235,.13)';
-  ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle = '#ffffff';ctx.lineWidth = 3;
-  ctx.beginPath();ctx.arc(0,0,21,0,Math.PI*2);ctx.stroke();
-  ctx.rotate(pos.heading+Math.PI/2);
-  // A small arrow points exactly along the current walking direction.
+  ctx.translate(p.x, p.y);
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Tiny ground anchor: the avatar's feet stay on the real computed route.
+  // A soft ellipse conveys depth without a huge ring hiding nearby stalls.
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,23,42,0.16)';
+  ctx.beginPath();
+  ctx.ellipse(1, 1.5, 13.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(37,99,235,0.14)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 10.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, 7.8, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = '#2563eb';
+  ctx.beginPath();
+  ctx.arc(0, 0, 4.9, 0, Math.PI * 2);
+  ctx.fill();
+
+  // One subtle direction pointer, following the route angle rather than
+  // rotating the entire human character into an unnatural sideways pose.
+  ctx.rotate(pos.heading);
   ctx.fillStyle = '#1d4ed8';
-  ctx.beginPath();ctx.moveTo(0,-26);ctx.lineTo(-5,-19);ctx.lineTo(5,-19);ctx.closePath();ctx.fill();
-  ctx.strokeStyle = '#1e3a8a';ctx.lineWidth = 4;ctx.lineCap = 'round';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(-4,5);ctx.lineTo(-5-stride*0.4,14+stride*0.6);
-  ctx.moveTo(4,5);ctx.lineTo(5+stride*0.4,14-stride*0.6);
+  ctx.moveTo(15, 0);
+  ctx.lineTo(9, -4.4);
+  ctx.lineTo(9, 4.4);
+  ctx.closePath();
+  ctx.fill();
   ctx.stroke();
-  ctx.strokeStyle='#60a5fa';ctx.lineWidth=3.4;
+  ctx.restore();
+
+  // Draw the mascot like a tiny 3/4-view person, not a stick icon.
+  ctx.translate(0, -lift);
+  ctx.rotate(lean);
+
+  // Legs and shoes, offset alternately for a natural walk cycle.
+  const leftFoot = -5 + gait * 2.8;
+  const rightFoot = -5 - gait * 2.8;
+  ctx.strokeStyle = '#14274d';
+  ctx.lineWidth = 5.4;
   ctx.beginPath();
-  ctx.moveTo(-6,-7);ctx.lineTo(-10,1-stride);
-  ctx.moveTo(6,-7);ctx.lineTo(10,1+stride);
+  ctx.moveTo(-4.2, -14);
+  ctx.lineTo(-5.8 - gait * 1.8, leftFoot);
+  ctx.moveTo(4.2, -14);
+  ctx.lineTo(5.8 + gait * 1.8, rightFoot);
   ctx.stroke();
-  ctx.fillStyle='#1d4ed8';
-  drawRoundedRect(ctx,-6,-10,12,16,5);ctx.fill();
-  ctx.fillStyle='#ffd39b';ctx.beginPath();ctx.arc(0,-13,5.2,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#172554';
-  ctx.beginPath();ctx.arc(0,-15.3,4.5,Math.PI,Math.PI*2);ctx.fill();
+
+  ctx.fillStyle = '#0f172a';
+  drawRoundedRect(ctx, -10 - gait * 1.7, leftFoot - 1, 8.8, 4.3, 2);
+  ctx.fill();
+  drawRoundedRect(ctx, 1.1 + gait * 1.7, rightFoot - 1, 8.8, 4.3, 2);
+  ctx.fill();
+  // Light shoe soles add the third dimension.
+  ctx.fillStyle = '#a5c5ff';
+  ctx.fillRect(-9.5 - gait * 1.7, leftFoot + 2.1, 7.7, 1.2);
+  ctx.fillRect(1.7 + gait * 1.7, rightFoot + 2.1, 7.7, 1.2);
+
+  // Arms behind the torso: rounded strokes and contrasting hand details.
+  ctx.strokeStyle = '#194fa8';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-8.5, -31);
+  ctx.lineTo(-11.7 - gait * 2.1, -19 + gait * 2.2);
+  ctx.moveTo(8.5, -31);
+  ctx.lineTo(12 - gait * 2.1, -19 - gait * 2.2);
+  ctx.stroke();
+  ctx.fillStyle = '#ffd2a0';
+  ctx.beginPath();
+  ctx.arc(-11.7 - gait * 2.1, -18.1 + gait * 2.2, 2.5, 0, Math.PI * 2);
+  ctx.arc(12 - gait * 2.1, -18.1 - gait * 2.2, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rounded blue jacket with edge shadow, lighting and a tiny chest badge.
+  ctx.save();
+  ctx.shadowColor = 'rgba(15,23,42,0.20)';
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetY = 1;
+  const jacket = ctx.createLinearGradient(-10, -33, 10, -16);
+  jacket.addColorStop(0, '#65b8ff');
+  jacket.addColorStop(0.42, '#2876ec');
+  jacket.addColorStop(1, '#153b91');
+  ctx.fillStyle = jacket;
+  drawRoundedRect(ctx, -9.2, -33, 18.4, 19.3, 6);
+  ctx.fill();
+  ctx.restore();
+  // Contrasting jacket side and light-catching fold.
+  ctx.fillStyle = 'rgba(10,36,98,.20)';
+  drawRoundedRect(ctx, 5.8, -31, 2.4, 15.5, 1.2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.62)';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(-4, -31);
+  ctx.lineTo(-4, -17.5);
+  ctx.stroke();
+  ctx.fillStyle = '#e2f4ff';
+  drawRoundedRect(ctx, 1.2, -27.4, 5.5, 3.5, 1.1);
+  ctx.fill();
+
+  // Head has its own volume: neck, circular gradient, ear and hair cap.
+  ctx.fillStyle = '#e9ae79';
+  drawRoundedRect(ctx, -2.6, -37, 5.2, 5.8, 2.2);
+  ctx.fill();
+  const face = ctx.createRadialGradient(-2.9, -45, 1, 0, -42.5, 11);
+  face.addColorStop(0, '#ffe7bf');
+  face.addColorStop(.64, '#ffd09c');
+  face.addColorStop(1, '#dca06c');
+  ctx.fillStyle = face;
+  ctx.beginPath();
+  ctx.arc(0, -43, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e8ad7c';
+  ctx.beginPath();
+  ctx.arc(-8.4, -42, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  // Dark rounded hair silhouette and a side swoop; face remains readable.
+  ctx.fillStyle = '#172b4a';
+  ctx.beginPath();
+  ctx.arc(0, -44.8, 8.7, Math.PI * 1.05, Math.PI * 1.99);
+  ctx.lineTo(8.5, -43);
+  ctx.quadraticCurveTo(4, -49, -1.5, -47.5);
+  ctx.quadraticCurveTo(-6, -43.4, -8.4, -41.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#13233e';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(-3.4, -42);
+  ctx.lineTo(-1.7, -42);
+  ctx.moveTo(3.4, -42);
+  ctx.lineTo(4.7, -42);
+  ctx.stroke();
+  ctx.fillStyle = '#d18a65';
+  ctx.beginPath();
+  ctx.arc(1, -38.6, 1.1, 0, Math.PI);
+  ctx.fill();
+
   ctx.restore();
 }
+
 function updateWalkPreviewAvatar3(now) {
   if (!walkPreviewAvatar3 || !walkPreviewPath) return;
   const pos=window.HallWalkPreview.sample(walkPreviewPath,walkPreviewDistance);
