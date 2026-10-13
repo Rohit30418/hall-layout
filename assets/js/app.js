@@ -74,7 +74,13 @@ function swapRoute() {
    NAV DRAWER
 ══════════════════════════════════════════ */
 function openNavDrawer() { document.getElementById('nav-drawer').classList.add('open'); document.body.classList.add('nav-drawer-visible'); }
-function closeNavDrawer() { document.getElementById('nav-drawer').classList.remove('open'); document.body.classList.remove('nav-drawer-visible'); }
+function closeNavDrawer() {
+  stopNavVoice();
+  voiceGuidanceOn = false;
+  updateNavVoiceButton();
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.body.classList.remove('nav-drawer-visible');
+}
 
 /* ══════════════════════════════════════════
    STATS
@@ -2884,16 +2890,75 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
 function capitalise(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
 // Navigation is deliberately simple: tap any instruction to highlight the
 // matching section of the actual route. No voice, focus mode or paging controls.
+// Opt-in browser speech: no microphone permission, server call or AI key.
+let voiceGuidanceOn = false;
+function navSpeechSupported() {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window &&
+    typeof window.SpeechSynthesisUtterance === 'function';
+}
+function stopNavVoice() {
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (_) {}
+}
+function updateNavVoiceButton() {
+  const button = document.getElementById('btnVoiceGuide');
+  if (!button) return;
+  const supported = navSpeechSupported();
+  button.disabled = !supported;
+  button.setAttribute('aria-pressed', String(voiceGuidanceOn && supported));
+  button.setAttribute('aria-label', voiceGuidanceOn ? 'Turn off spoken directions' : 'Turn on spoken directions');
+  button.title = supported ? 'Read the selected route step aloud' : 'Voice guidance is unavailable in this browser';
+  button.classList.toggle('is-active', voiceGuidanceOn && supported);
+  button.innerHTML = voiceGuidanceOn && supported
+    ? '<i class="fa fa-volume-high" aria-hidden="true"></i> Voice on'
+    : '<i class="fa fa-volume-high" aria-hidden="true"></i> Listen';
+  const status = document.getElementById('voiceGuideStatus');
+  if (status) status.textContent = supported
+    ? (voiceGuidanceOn ? 'Voice guidance enabled. Tap any step to hear it.' : 'Voice guidance off.')
+    : 'Voice guidance is unavailable in this browser.';
+}
+function readSelectedNavStep() {
+  if (!voiceGuidanceOn || !navSpeechSupported()) return;
+  const step = navStepsData[currentNavStepIdx];
+  if (!step) return;
+  stopNavVoice();
+  const message = String(step.spoken || step.main || '').trim();
+  if (!message) return;
+  try {
+    const utterance = new window.SpeechSynthesisUtterance(message);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    utterance.onerror = () => {
+      const status = document.getElementById('voiceGuideStatus');
+      if (status) status.textContent = 'Could not play this instruction. Read the direction on screen.';
+    };
+    window.speechSynthesis.speak(utterance);
+  } catch (_) {
+    const status = document.getElementById('voiceGuideStatus');
+    if (status) status.textContent = 'Voice is unavailable. You can still read the directions.';
+  }
+}
+function toggleVoiceGuidance() {
+  if (!navSpeechSupported()) { updateNavVoiceButton(); return; }
+  voiceGuidanceOn = !voiceGuidanceOn;
+  updateNavVoiceButton();
+  if (voiceGuidanceOn) readSelectedNavStep();
+  else stopNavVoice();
+}
+
 function setNavStep(index) {
   if (!Number.isInteger(index) || index < 0 || index >= navStepsData.length) return;
   currentNavStepIdx = index;
   renderDrawerSteps();
+  readSelectedNavStep();
 }
 
 /* ══════════════════════════════════════════
    NAV PANEL
 ══════════════════════════════════════════ */
 function renderNavPanel(steps, fromLabel, toLabel) {
+  stopNavVoice();
+  voiceGuidanceOn = false;
   navStepsData = steps; currentNavStepIdx = 0;
   document.getElementById('navFabFrom').textContent = fromLabel;
   document.getElementById('navFabTo').textContent   = toLabel;
@@ -2905,6 +2970,7 @@ function renderNavPanel(steps, fromLabel, toLabel) {
   document.getElementById('drawerSummaryText').textContent = `${routeMetrics.distanceLabel || ''} estimated · ${turns} turn${turns !== 1 ? 's' : ''}`;
   document.body.classList.add('route-active');
   renderDrawerSteps();
+  updateNavVoiceButton();
   document.getElementById('nav-fab').classList.add('show');
   openNavDrawer();
   // Keep the direction drawer open. Auto-closing made steps disappear while users were reading/clicking them.
@@ -3960,6 +4026,8 @@ function resetRouteVisualState(keepInputs = true) {
   closeNavDrawer();
   navStepsData = [];
   currentNavStepIdx = 0;
+  voiceGuidanceOn = false;
+  updateNavVoiceButton();
   document.getElementById('btnClear').style.display = 'none';
   if (!keepInputs) {
     document.getElementById('routeFrom').value = '';
