@@ -118,7 +118,7 @@ test('directions list is visible by default and one-step focus is optional', () 
   assert.match(html,/aria-expanded="true" aria-controls="drawerSteps"/);
   assert.ok(html.includes('navigation-polish.css?v=nav-ui-v3'));
   assert.ok(html.includes('navigation-guide.js?v=nav-ui-v3'));
-  assert.ok(html.includes('app.js?v=nav-ui-v3'));
+  assert.ok(html.includes('app.js?v=nav-ui-v4'));
   assert.ok(html.includes('id="btnVoiceGuide"'));
   assert.ok(html.includes('id="btnRepeatStep"'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js')<html.indexOf('assets/js/app.js'));
@@ -129,6 +129,7 @@ test('directions list is visible by default and one-step focus is optional', () 
   assert.ok(css.includes('#nav-drawer.steps-expanded .nav-now'));
   assert.ok(css.includes('#nav-drawer.steps-expanded .drawer-steps'));
   assert.ok(js.includes("window.HallNavGuide.enhanceSteps"));
+  assert.ok(js.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'left/right icons have reliable font awesome classes');
   assert.ok(js.includes("container.replaceChildren()"));
   assert.ok(js.includes("for (let i = start + 1; i <= end; i++) ctx.lineTo"));
   assert.ok(js.includes("window.speechSynthesis.cancel()"));
