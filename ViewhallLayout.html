@@ -211,15 +211,8 @@
       <button type="button" class="walk-preview-restart" id="btnWalkRestart" onclick="restartWalkPreview()" aria-label="Restart route preview" title="Restart simulated walk" disabled>
         <i class="fa fa-rotate-right" aria-hidden="true"></i>
       </button>
-      <button type="button" class="walk-avatar-photo-btn" id="btnWalkAvatarPhoto" onclick="chooseWalkAvatarPhoto()"
-        aria-label="Choose circular avatar photo" title="Choose photo for moving avatar">
-        <i class="fa fa-camera" aria-hidden="true"></i>
-      </button>
-      <input id="walkAvatarPhotoInput" type="file" accept="image/jpeg,image/png,image/webp"
-        style="display:none" onchange="loadWalkAvatarPhoto(this)" aria-label="Avatar photo file">
       <span class="walk-preview-status" id="walkPreviewStatus" role="status" aria-live="polite">Route simulation</span>
     </div>
-    <span id="walkAvatarPhotoStatus" class="nav-voice-sr-only" role="status" aria-live="polite"></span>
     <div class="walk-preview-track" id="walkPreviewProgress" role="progressbar" aria-label="Route preview progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <span class="walk-preview-fill" id="walkPreviewFill"></span>
     </div>
@@ -253,9 +246,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
-<script src="assets/js/navigation-guide.js?v=nav-ui-v3"></script>
+<script src="assets/js/navigation-guide.js?v=company-directions-v10"></script>
 <script src="assets/js/route-avatar.js?v=walk-preview-v7"></script>
-<script src="assets/js/app.js?v=round-avatar-v9"></script>
+<script src="assets/js/app.js?v=company-directions-v10"></script>
 <script src="assets/js/ui-wow.js?v=minimal-v5"></script>
 <script src="assets/js/mobile-navigation.js?v=mobile-sheet-v1"></script>
 </body>
