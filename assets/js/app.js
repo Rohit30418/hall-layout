@@ -1002,10 +1002,10 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
 function drawRouteSummaryBubble2d(anchorWorld) {
   // The directions panel already displays the summary. Avoid covering the route with a second card.
   if (document.body.classList.contains('nav-drawer-visible')) return;
-  if (!routeMetrics || !routeMetrics.distanceLabel || !anchorWorld) return;
+  if (!anchorWorld) return;
   const p = w2s(anchorWorld.x, anchorWorld.y);
-  const title = `${routeMetrics.timeLabel} (${routeMetrics.distanceLabel})`;
-  const sub = _usingWalkZones ? 'Shortest aisle route' : 'Aisle-safe route';
+  const title = 'Follow the blue route';
+  const sub = 'Directions shown in the route panel';
   ctx.save();
   ctx.font = '800 12px Inter,Arial,sans-serif';
   const titleW = ctx.measureText(title).width;
@@ -1073,10 +1073,8 @@ function syncNextTurnHud(force = false) {
   }
   const lastStep = navStepsData[navStepsData.length-1];
   const destination = lastStep?.destinationLabel || document.getElementById('navDrawerTo')?.textContent || 'destination';
-  const scale = (Number.isFinite(routeMetrics.distanceM) && routeMetrics.distanceM>0)
-    ? routeMetrics.distanceM / walkPreviewPath.total : 1;
   const next = window.HallNextTurnHud.atDistance(
-    walkPreviewPath, nextTurnHudEvents, walkPreviewDistance, scale, destination);
+    walkPreviewPath, nextTurnHudEvents, walkPreviewDistance, destination);
   if (!next) return;
   const icons = {left:'fa-arrow-left',right:'fa-arrow-right',uturn:'fa-rotate-left',
     destination:'fa-location-dot',arrived:'fa-check'};
@@ -1085,22 +1083,21 @@ function syncNextTurnHud(force = false) {
     next.type==='destination' ? 'DESTINATION AHEAD' : 'UPCOMING TURN · PREVIEW';
   const detail = next.type==='left' || next.type==='right' || next.type==='uturn'
     ? (navStepsData[currentNavStepIdx]?.sub || next.detail) : next.detail;
-  const output = [next.type,kicker,next.title,next.distanceText,detail].join('|');
+  const output = [next.type,kicker,next.title,detail].join('|');
   if(force || nextTurnHudLastRender!==output) {
     el.dataset.turn = next.type;
     const icon = document.querySelector('#nextTurnHudIcon i');
     if (icon) icon.className = 'fa '+(icons[next.type] || 'fa-arrow-up');
     const fields = [['nextTurnHudKicker',kicker],['nextTurnHudTitle',next.title],
-      ['nextTurnHudDistance',next.distanceText],['nextTurnHudDetail',detail]];
+      ['nextTurnHudDetail',detail]];
     fields.forEach(([id,value])=>{
       const element=document.getElementById(id);
       if(element && element.textContent!==value)element.textContent=value;
     });
     nextTurnHudLastRender=output;
   }
-  // The countdown updates visually, but the screen reader announces only
-  // a new turn / destination / arrival, never once per metre.
-  const announcementKey = (next.eventKey ?? next.type)+':'+(next.distanceText==='Now'?'now':'');
+  // Announce only new turns, "now", and arrival; no per-frame announcements.
+  const announcementKey = (next.eventKey ?? next.type)+':'+next.phase;
   if(announcementKey!==nextTurnHudLastAnnouncement) {
     nextTurnHudLastAnnouncement=announcementKey;
     const announce=document.getElementById('nextTurnHudAnnounce');
@@ -3322,13 +3319,12 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
 
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1], b = pts[i];
-    const distM = Math.max(1, Math.round(segLen(a, b) * estimateMetersPerUnit()));
     // Do not hide the last segment: even short approaches can involve a turn.
 
     let type = 'straight';
     let icon = 'fa-arrow-up';
     let iconClass = 'si-straight';
-    let main = `Go forward ${formatMeters(distM)}`;
+    let main = 'Continue straight';
 
     if (i > 1) {
       const turn = humanTurn(signedTurn(headingDeg(pts[i - 2], a), headingDeg(a, b)));
@@ -3336,12 +3332,12 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
         type = turn.type;
         icon = turn.type === 'right' ? 'fa-arrow-right' : 'fa-arrow-left';
         iconClass = turn.type === 'right' ? 'si-right' : 'si-left';
-        main = `${capitalise(turn.verb)} and go ahead for ${formatMeters(distM)}`;
+        main = capitalise(turn.verb);
       } else if (turn.type === 'uturn') {
         type = 'uturn';
         icon = 'fa-rotate-left';
         iconClass = 'si-uturn';
-        main = `Turn around and go ahead for ${formatMeters(distM)}`;
+        main = 'Turn around';
       }
     }
 
@@ -3441,8 +3437,8 @@ function renderNavPanel(steps, fromLabel, toLabel) {
   document.getElementById('navDrawerFrom').textContent = fromLabel;
   document.getElementById('navDrawerTo').textContent   = toLabel;
   const turns = steps.reduce((sum, step) => sum + (Number.isInteger(step.turnsCount) ? step.turnsCount : (['left','right','uturn'].includes(step.type) ? 1 : 0)), 0);
-  document.getElementById('drawerStepCount').textContent   = routeMetrics.timeLabel || 'Walking route';
-  document.getElementById('drawerSummaryText').textContent = `${routeMetrics.distanceLabel || ''} estimated · ${turns} turn${turns !== 1 ? 's' : ''}`;
+  document.getElementById('drawerStepCount').textContent   = 'Walking route';
+  document.getElementById('drawerSummaryText').textContent = turns ? `${turns} turn${turns !== 1 ? 's' : ''} · Follow the blue route` : 'Follow the blue route';
   document.body.classList.add('route-active');
   renderDrawerSteps();
   updateNavVoiceButton();
