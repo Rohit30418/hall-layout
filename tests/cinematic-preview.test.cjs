@@ -54,7 +54,7 @@ test('new script loads before app, existing voice remains opt-in and both camera
   const html=fs.readFileSync(path.join(base,'ViewhallLayout.html'),'utf8');
   const app=fs.readFileSync(path.join(base,'assets/js/app.js'),'utf8');
   assert.ok(html.includes('cinematic-preview.js?v=cinematic-v11'));
-  assert.ok(html.indexOf('cinematic-preview.js')<html.indexOf('app.js?v=turn-hud-v1'));
+  assert.ok(html.indexOf('cinematic-preview.js')<html.indexOf('app.js?v=direction-only-v2'));
   assert.ok(html.includes('Cinematic preview'));
   assert.ok(html.includes('id="btnVoiceGuide"'));
   assert.ok(app.includes('function updateCinematicCamera2d(now)'));
