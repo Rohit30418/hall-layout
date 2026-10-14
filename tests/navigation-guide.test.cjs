@@ -156,7 +156,7 @@ test('directions panel keeps a single optional voice button and clickable instru
   assert.ok(html.includes('onclick="toggleVoiceGuidance()"'));
   assert.ok(html.includes('class="drawer-voice-btn"'));
   assert.ok(html.includes('role="status" aria-live="polite"'));
-  assert.ok(html.includes('app.js?v=company-directions-v10'));
+  assert.ok(html.includes('app.js?v=cinematic-v11'));
   assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
   assert.ok(app.includes('function setNavStep(index)'));
@@ -168,7 +168,7 @@ test('directions panel keeps a single optional voice button and clickable instru
   assert.ok(!html.includes('id="walkAvatarPhotoInput"'));
   assert.ok(!html.includes('id="walkAvatarPhotoStatus"'));
   assert.ok(html.includes('navigation-guide.js?v=company-directions-v10'));
-  assert.ok(html.includes('app.js?v=company-directions-v10'));
+  assert.ok(html.includes('app.js?v=cinematic-v11'));
   assert.ok(app.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'turn icons still work');
   assert.ok(app.includes('for (let i = start + 1; i <= end; i++) ctx.lineTo'), 'highlight actual route');
   assert.ok(app.includes('function toggleVoiceGuidance()'));
