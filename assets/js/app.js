@@ -3110,8 +3110,10 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   // Waypoints here are the EXACT points used by the 2D/3D line.
   const pts = waypoints;
   const steps = [];
-  const startPlace = window.HallNavGuide?.placeLabel(meta.fromD, fromLabel) || fromLabel;
-  const destinationPlace = window.HallNavGuide?.placeLabel(meta.toD, toLabel, document.getElementById('hallBtnText')?.textContent) || toLabel;
+  const labeler = typeof window !== 'undefined' ? window.HallNavGuide?.placeLabel : null;
+  const hallLabel = typeof document !== 'undefined' ? document.getElementById('hallBtnText')?.textContent : '';
+  const startPlace = labeler ? labeler(meta.fromD, fromLabel, hallLabel) : fromLabel;
+  const destinationPlace = labeler ? labeler(meta.toD, toLabel, hallLabel) : toLabel;
   steps.push({ type: 'start', icon: 'fa-circle-dot', iconClass: 'si-start', main: `Start at ${startPlace}`, sub: 'Move to the nearest aisle', landmark: null, pathStartIndex: 0, pathEndIndex: 0 });
 
   if (pts.length < 2) {
