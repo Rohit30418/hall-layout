@@ -282,6 +282,7 @@ function s2w(sx, sy) {
   return { x: (sx - canvas2d.width / 2) / cam2.zoom + cam2.x, y: (sy - canvas2d.height / 2) / cam2.zoom + cam2.y };
 }
 function zoom2d(factor) {
+  suspendCinematicTracking();
   const cx = canvas2d.width / 2, cy = canvas2d.height / 2;
   const w = s2w(cx, cy);
   cam2.zoom = Math.min(10, Math.max(0.04, cam2.zoom * factor));
@@ -291,6 +292,7 @@ function zoom2d(factor) {
 }
 
 function zoom3d(factor) {
+  suspendCinematicTracking();
   if (!camera3 || !controls3) return;
   const target = controls3.target.clone();
   const offset = camera3.position.clone().sub(target);
@@ -319,6 +321,7 @@ function zoomMap(factor) {
   else zoom2d(factor);
 }
 function resetMapView() {
+  suspendCinematicTracking();
   if (currentView === '3d') fitCamera3d();
   else fitCamera2d();
 }
@@ -1048,6 +1051,119 @@ let walkPreviewAvatar3 = null;
 let walkPreviewLimbs3 = null;
 let walkPreviewLastStatus = '';
 
+// Cinematic camera follows the EXISTING navigation route; it never changes
+// walk zones, waypoints, directions, or the selected destination.
+let cinemaTurns = [];
+let cinemaBaseZoom = null;
+let cinema3Offset = null;
+let cinema3Distance = null;
+let cinemaSuspended = false;
+let cinemaLastFrame2d = null;
+let cinemaLastFrame3d = null;
+let cinemaFinishAt = 0;
+let cinemaHalo3 = null;
+function cinemaReducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function resetCinematicState() {
+  cinemaTurns = [];
+  cinemaBaseZoom = null;
+  cinema3Offset = null;
+  cinema3Distance = null;
+  cinemaSuspended = false;
+  cinemaLastFrame2d = null;
+  cinemaLastFrame3d = null;
+  cinemaFinishAt = 0;
+  cinemaHalo3 = null;
+}
+function suspendCinematicTracking() {
+  // Visitors can take control of the map while preview keeps progressing.
+  // Pausing and resuming the preview restores follow mode.
+  if (!walkPreviewPlaying) return;
+  cinemaSuspended = true;
+  cinemaLastFrame2d = null;
+  cinemaLastFrame3d = null;
+  syncWalkPreviewUi(true);
+}
+function startCinematicTracking() {
+  if (!walkPreviewPath || !window.HallCinematicPreview) return;
+  cinemaSuspended = false;
+  cinemaFinishAt = 0;
+  cinemaLastFrame2d = null;
+  cinemaLastFrame3d = null;
+  if (currentView === '2d') {
+    if (cinemaBaseZoom == null) cinemaBaseZoom = Math.max(0.065, cam2.zoom);
+  } else if (camera3 && controls3) {
+    if (!cinema3Offset) {
+      cinema3Offset = camera3.position.clone().sub(controls3.target);
+      cinema3Distance = Math.min(850,Math.max(260,cinema3Offset.length()*0.8));
+      cinema3Offset.normalize();
+    }
+  }
+  syncWalkPreviewUi(true);
+}
+function updateCinematicCamera2d(now) {
+  if (currentView !== '2d' || !walkPreviewPath || cinemaSuspended || !window.HallCinematicPreview) return false;
+  if (!walkPreviewPlaying && (!cinemaFinishAt || Date.now()-cinemaFinishAt>1750)) return false;
+  if (isPanning || _multiTouchActive) return false;
+  const cinema = window.HallCinematicPreview;
+  const onMobile = canvas2d.width<=768;
+  const occupied = onMobile ? (Number.parseFloat(document.body.style.getPropertyValue('--mobile-nav-height')) || 0) : 0;
+  const viewport = onMobile && window.HallMobileNavigation
+    ? window.HallMobileNavigation.safeViewport(canvas2d.width,canvas2d.height,occupied)
+    : {left:document.getElementById('nav-drawer')?.classList.contains('open') ? Math.min(405,canvas2d.width*0.40):44,
+      right:canvas2d.width-44,top:42,bottom:canvas2d.height-44};
+  const target=cinema.cameraTarget2d(walkPreviewPath,cinemaTurns,walkPreviewDistance,
+    cinemaBaseZoom || cam2.zoom,canvas2d,viewport,window.HallWalkPreview.sample);
+  if (!target) return false;
+  const dt=cinemaLastFrame2d==null?16:Math.min(64,Math.max(0,now-cinemaLastFrame2d));
+  cinemaLastFrame2d=now;
+  return cinema.easeCamera2d(cam2,target,dt,cinemaReducedMotion());
+}
+function updateCinematicCamera3d(now) {
+  if (currentView!=='3d'||!walkPreviewPath||!camera3||!controls3||!cinema3Offset||cinemaSuspended||!window.HallCinematicPreview)return;
+  if(!walkPreviewPlaying&&(!cinemaFinishAt||Date.now()-cinemaFinishAt>1750))return;
+  const p=window.HallWalkPreview.sample(walkPreviewPath,walkPreviewDistance);
+  if(!p)return;
+  const dt=cinemaLastFrame3d==null?16:Math.max(0,Math.min(64,now-cinemaLastFrame3d));
+  cinemaLastFrame3d=now;
+  const ease=cinemaReducedMotion()?1:1-Math.exp(-dt/260);
+  const dolly=window.HallCinematicPreview.cameraDolly3d(walkPreviewDistance,walkPreviewPath.total,cinemaTurns);
+  const target=new THREE.Vector3(p.x,13,p.y);
+  const desiredCamera=target.clone().addScaledVector(cinema3Offset,cinema3Distance*dolly);
+  controls3.target.lerp(target,ease);
+  camera3.position.lerp(desiredCamera,ease);
+}
+function drawCinematicDestination2d() {
+  if(!cinemaFinishAt||!routeEnd2d)return;
+  const age=Date.now()-cinemaFinishAt;
+  if(age<0)return;
+  const p=w2s(routeEnd2d.x,routeEnd2d.y);
+  const pulse=Math.max(0,1-Math.min(age,3200)/3200);
+  ctx.save();
+  ctx.globalAlpha=0.28+0.45*pulse;
+  ctx.setLineDash([]);
+  ctx.strokeStyle='#0891b2';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,16+12*(1-pulse),0,Math.PI*2);
+  ctx.stroke();
+  ctx.globalAlpha=0.13*pulse;
+  ctx.fillStyle='#22d3ee';
+  ctx.beginPath();ctx.arc(p.x,p.y,30,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function updateCinematicDestination3d() {
+  if(!cinemaHalo3)return;
+  const age=cinemaFinishAt?Date.now()-cinemaFinishAt:0;
+  cinemaHalo3.visible=cinemaFinishAt>0&&age>=0;
+  if(!cinemaHalo3.visible)return;
+  const pulse=Math.max(0,1-Math.min(age,3200)/3200);
+  const scale=1+0.35*(1-pulse);
+  cinemaHalo3.scale.set(scale,scale,scale);
+  cinemaHalo3.material.opacity=0.25+0.4*pulse;
+}
+
 function syncWalkPreviewUi(force = false) {
   const play = document.getElementById('btnWalkPreview');
   const restart = document.getElementById('btnWalkRestart');
@@ -1061,15 +1177,16 @@ function syncWalkPreviewUi(force = false) {
   play.disabled = !available;
   play.setAttribute('aria-pressed', String(walkPreviewPlaying));
   play.innerHTML = walkPreviewPlaying
-    ? '<i class="fa fa-pause" aria-hidden="true"></i> Pause walk'
-    : completed ? '<i class="fa fa-rotate-right" aria-hidden="true"></i> Replay walk'
-      : '<i class="fa fa-person-walking" aria-hidden="true"></i> Preview walk';
+    ? '<i class="fa fa-pause" aria-hidden="true"></i> Pause preview'
+    : completed ? '<i class="fa fa-rotate-right" aria-hidden="true"></i> Replay preview'
+      : '<i class="fa fa-film" aria-hidden="true"></i> Cinematic preview';
   if (restart) restart.disabled = !available || walkPreviewDistance <= 0;
   if (fill) fill.style.width = pct + '%';
   if (progress) progress.setAttribute('aria-valuenow', String(pct));
   const label = !available ? 'Route simulation' :
-    completed ? 'Preview complete' : walkPreviewPlaying ? 'Walking · ' + (Math.floor(pct / 10) * 10) + '%' :
-      walkPreviewDistance > 0 ? 'Paused · ' + pct + '%' : 'Route simulation';
+    completed ? 'Destination reached' : walkPreviewPlaying
+      ? ((cinemaSuspended ? 'Manual map · ' : 'Following · ') + (Math.floor(pct / 10) * 10) + '%')
+      : walkPreviewDistance > 0 ? 'Paused · ' + pct + '%' : 'Route preview';
   if (status && (force || label !== walkPreviewLastStatus)) status.textContent = label;
   walkPreviewLastStatus = label;
 }
@@ -1081,6 +1198,7 @@ function removeWalkPreviewAvatar3() {
   walkPreviewLimbs3 = null;
 }
 function clearWalkPreview() {
+  resetCinematicState();
   walkPreviewPlaying = false;
   walkPreviewLastTick = null;
   walkPreviewPath = null;
@@ -1091,6 +1209,8 @@ function clearWalkPreview() {
 }
 function pauseWalkPreview() {
   if (!walkPreviewPlaying) return;
+  cinemaLastFrame2d = null;
+  cinemaLastFrame3d = null;
   walkPreviewPlaying = false;
   walkPreviewLastTick = null;
   syncWalkPreviewUi(true);
@@ -1131,6 +1251,8 @@ function prepareWalkPreview(points) {
   clearWalkPreview();
   if (!window.HallWalkPreview) return;
   walkPreviewPath = window.HallWalkPreview.buildPath(points);
+  cinemaTurns = walkPreviewPath && window.HallCinematicPreview
+    ? window.HallCinematicPreview.cornerDistances(walkPreviewPath) : [];
   if (currentView === '3d' && walkPreviewPath) createWalkPreviewAvatar3();
   // Expanding mobile steps changes visible map space. Snap only as much as
   // needed to keep the current route marker above the bottom sheet.
@@ -1149,6 +1271,8 @@ function toggleWalkPreview() {
   if (walkPreviewDistance >= walkPreviewPath.total - 0.00001) walkPreviewDistance = 0;
   walkPreviewPlaying = true;
   walkPreviewLastTick = null;
+  startCinematicTracking();
+  if (voiceGuidanceOn && walkPreviewDistance === 0) readSelectedNavStep();
   syncWalkPreviewUi(true);
 }
 function restartWalkPreview() {
@@ -1158,6 +1282,8 @@ function restartWalkPreview() {
   walkPreviewLastTick = null;
   currentNavStepIdx = 0;
   renderDrawerSteps();
+  startCinematicTracking();
+  if (voiceGuidanceOn) readSelectedNavStep();
   syncWalkPreviewUi(true);
 }
 function advanceWalkPreview(now) {
@@ -1177,6 +1303,7 @@ function advanceWalkPreview(now) {
     if (voiceGuidanceOn) readSelectedNavStep();
   }
   if (walkPreviewDistance >= walkPreviewPath.total - 0.00001) {
+    cinemaFinishAt = Date.now();
     walkPreviewPlaying = false;
     walkPreviewLastTick = null;
     syncWalkPreviewUi(true);
@@ -1438,6 +1565,7 @@ function drawRoute2d() {
   };
   if (routeStart2d) { const sp = w2s(routeStart2d.x, routeStart2d.y); mkr(sp, '#059669', 'START', ''); }
   if (routeEnd2d)   { const ep = w2s(routeEnd2d.x, routeEnd2d.y);     mkr(ep, '#1e3a8a', 'END', ''); }
+  drawCinematicDestination2d();
   drawRouteSummaryBubble2d(routePath2d[Math.max(0, routePath2d.length - 2)] || routeEnd2d);
   drawWalkPreviewAvatar2d();
   ctx.restore();
@@ -1512,10 +1640,12 @@ function draw2d() {
 
   const loop = () => {
     if (currentView !== '2d') { raf2dId = null; return; }
-    advanceWalkPreview(performance.now());
-    // The mobile camera tracks only a PLAYING simulated walk, leaving manual
-    // map pans untouched while paused. It keeps the avatar above the sheet.
-    if (walkPreviewPlaying && walkPreviewPath && window.HallMobileNavigation?.isActive()) {
+    const frameNow = performance.now();
+    advanceWalkPreview(frameNow);
+    // Cinematic camera owns follow when available. The existing mobile safe
+    // camera remains the fallback if the optional cinematic helper is absent.
+    if (window.HallCinematicPreview) updateCinematicCamera2d(frameNow);
+    else if (walkPreviewPlaying && walkPreviewPath && window.HallMobileNavigation?.isActive()) {
       const walker = window.HallWalkPreview.sample(walkPreviewPath, walkPreviewDistance);
       if (walker) window.HallMobileNavigation.follow(walker, cam2, canvas2d);
     }
@@ -1600,7 +1730,7 @@ canvas2d.addEventListener('pointermove', e => {
   if (isPanning) {
     hide2dHoverTip();
     const dx = e.clientX - ptrDown2d.x, dy = e.clientY - ptrDown2d.y;
-    if (Math.hypot(dx, dy) > 8) isDragging2d = true;
+    if (Math.hypot(dx, dy) > 8) { isDragging2d = true; suspendCinematicTracking(); }
     cam2.x = camStart.x - dx / cam2.zoom;
     cam2.y = camStart.y - dy / cam2.zoom;
   } else {
@@ -1620,6 +1750,7 @@ canvas2d.addEventListener('pointerup', e => {
 });
 canvas2d.addEventListener('wheel', e => {
   if (currentView !== '2d') return;
+  suspendCinematicTracking();
   e.preventDefault();
   const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h'));
   const w = s2w(e.clientX, e.clientY - headerH);
@@ -1651,6 +1782,7 @@ canvas2d.addEventListener('touchstart', e => {
   _activeTouches = e.touches.length;
   if (e.touches.length >= 2) {
     e.preventDefault();
+    suspendCinematicTracking();
     _multiTouchActive = true;
     isPanning = false;
     isDragging2d = true;
@@ -1819,6 +1951,7 @@ function init3D() {
   container.appendChild(labelRenderer3.domElement);
 
   controls3 = new THREE.OrbitControls(camera3, renderer3.domElement);
+  controls3.addEventListener('start', suspendCinematicTracking);
   controls3.enableDamping = true;
   controls3.dampingFactor = 0.06;
   controls3.maxPolarAngle = Math.PI / 2 - 0.04;
@@ -3437,6 +3570,13 @@ function calculateRoute3d(fv, tv) {
   const eDiv = document.createElement('div'); eDiv.className = 'route-badge badge-end';
   eDiv.innerHTML = `<i class="fa fa-flag-checkered"></i> END: ${en3}`;
   const eLbl = new THREE.CSS2DObject(eDiv); eLbl.position.set(0, 10, 0); endMark3.add(eLbl); scene.add(endMark3);
+  // Invisible until arrival, then an understated glowing finish ring.
+  cinemaHalo3 = new THREE.Mesh(new THREE.RingGeometry(18,25,30),
+    new THREE.MeshBasicMaterial({color:0x06b6d4,transparent:true,opacity:0.58,depthWrite:false,side:THREE.DoubleSide}));
+  cinemaHalo3.rotation.x = -Math.PI/2;
+  cinemaHalo3.position.y = -20;
+  cinemaHalo3.visible = false;
+  endMark3.add(cinemaHalo3);
 
   const box = new THREE.Box3().setFromObject(sG).expandByObject(eG);
   const ctr = box.getCenter(new THREE.Vector3());
@@ -3514,6 +3654,8 @@ function pointOnRoute3(distanceOnPath) {
 function updateRouteAnimation3(now) {
   if (currentView === '3d') advanceWalkPreview(now);
   updateWalkPreviewAvatar3(now);
+  updateCinematicCamera3d(now);
+  updateCinematicDestination3d();
   if (!pathAnimDots3.length || routeTotalLen3 <= 0) return;
   pathAnimDots3.forEach(dot => {
     const p = pointOnRoute3((now * .045 + dot.userData.routeOffset) % routeTotalLen3);
