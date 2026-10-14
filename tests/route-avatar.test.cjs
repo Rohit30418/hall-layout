@@ -73,7 +73,7 @@ test('preview UI remains optional, voice remains, and both map modes use same ro
   assert.ok(html.includes('id="btnVoiceGuide"'));
   assert.ok(!html.includes('id="btnPrevStep"'));
   assert.ok(!html.includes('id="btnNextStep"'));
-  assert.ok(html.indexOf('route-avatar.js?v=walk-preview-v7')<html.indexOf('app.js?v=round-avatar-v9'));
+  assert.ok(html.indexOf('route-avatar.js?v=walk-preview-v7')<html.indexOf('app.js?v=company-directions-v10'));
   assert.ok(css.includes('#nav-drawer .walk-preview-play'));
   assert.ok(app.includes('function drawWalkPreviewAvatar2d()'));
   assert.ok(app.includes('function updateWalkPreviewAvatar3(now)'));
@@ -88,26 +88,23 @@ test('preview UI remains optional, voice remains, and both map modes use same ro
 });
 
 
-test('2D preview draws a circular photo avatar with a separate direction pointer',()=>{
+test('2D preview retains circular profile and directional pointer without photo upload',()=>{
   const base=path.join(__dirname,'..');
   const app=fs.readFileSync(path.join(base,'assets/js/app.js'),'utf8');
+  const html=fs.readFileSync(path.join(base,'ViewhallLayout.html'),'utf8');
+  const css=fs.readFileSync(path.join(base,'assets/css/navigation-polish.css'),'utf8');
   const start=app.indexOf('function drawWalkPreviewAvatar2d() {');
   const end=app.indexOf('function updateWalkPreviewAvatar3(now)',start);
   assert.ok(start>=0 && end>start);
   const code=app.slice(start,end);
-  assert.ok(code.includes('ctx.clip()'), 'portrait is clipped to circle');
-  assert.ok(code.includes('ctx.drawImage('), 'photo can be rendered');
-  assert.ok(code.includes('Math.min(img.naturalWidth, img.naturalHeight)'), 'portrait is not stretched');
-  assert.ok(code.includes('ctx.arc(0, 0, radius + 2'), 'border remains compact');
-  assert.ok(code.includes('ctx.rotate(pos.heading)'), 'pointer rotates with route');
-  assert.ok(!code.includes('ctx.rotate(pos.heading+Math.PI/2)'), 'portrait stays upright');
-  assert.ok(!code.includes('gait') && !code.includes('leftFoot'), 'stick figure removed');
-  assert.ok(app.includes('function loadWalkAvatarPhoto(input)'));
-  assert.ok(app.includes('URL.revokeObjectURL(url)'), 'photo temporary URL is cleaned up');
-  assert.ok(app.includes("['image/jpeg', 'image/png', 'image/webp']"), 'restrict accepted types');
-  assert.ok(app.includes('3 * 1024 * 1024'), 'restrict local file size');
-  const html=fs.readFileSync(path.join(base,'ViewhallLayout.html'),'utf8');
-  assert.ok(html.includes('id="btnWalkAvatarPhoto"'), 'choose photo control exists');
-  assert.ok(html.includes('id="walkAvatarPhotoInput"'), 'image file picker exists');
-  assert.ok(html.includes('id="walkAvatarPhotoStatus"'), 'accessible status exists');
+  assert.ok(code.includes('ctx.clip()'), 'profile marker is circular');
+  assert.ok(code.includes('ctx.createLinearGradient('), 'profile remains illustrated');
+  assert.ok(code.includes('ctx.arc(0, 0, radius + 2'), 'compact circular border');
+  assert.ok(code.includes('ctx.rotate(pos.heading)'), 'pointer follows route');
+  assert.ok(!code.includes('ctx.rotate(pos.heading+Math.PI/2)'), 'profile stays upright');
+  assert.ok(!code.includes('ctx.drawImage('), 'profile does not depend on photos');
+  for(const item of ['walkAvatarPhotoInput','btnWalkAvatarPhoto','walkAvatarPhotoStatus','chooseWalkAvatarPhoto','loadWalkAvatarPhoto','walkAvatarImage2d']){
+    assert.ok(!html.includes(item) && !app.includes(item), 'unused photo feature removed: '+item);
+  }
+  assert.ok(!css.includes('.walk-avatar-photo-btn'), 'old photo picker style removed');
 });
