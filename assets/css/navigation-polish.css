@@ -585,23 +585,3 @@ body.nav-drawer-visible #nav-fab { display:none !important; }
 }
 
 
-/* Compact round-avatar photo option; picture is decoded locally only. */
-#nav-drawer .walk-avatar-photo-btn {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  flex:0 0 35px;
-  height:36px;
-  width:35px;
-  border:1px solid #bfdbfe;
-  border-radius:10px;
-  background:#fff;
-  color:#1e40af;
-  font-size:13px;
-  cursor:pointer;
-}
-#nav-drawer .walk-avatar-photo-btn:hover {background:#eff6ff;border-color:#60a5fa;}
-#nav-drawer .walk-avatar-photo-btn:focus-visible {outline:3px solid #93c5fd;outline-offset:2px;}
-@media(max-width:768px) {
-  #nav-drawer .walk-avatar-photo-btn {height:35px;width:35px;}
-}
