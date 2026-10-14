@@ -11,12 +11,19 @@
     if (!path || !Array.isArray(path.points) || path.points.length<3 || !Array.isArray(path.cumulative)) return [];
     const result=[];
     for(let i=1;i<path.points.length-1;i++){
-      const a=path.points[i-1],b=path.points[i],c=path.points[i+1];
+      const pts=path.points,dist=path.cumulative;
+      // Identical adjacent route vertices must not hide a real bend.
+      // Use the next distinct vertex, once per corner distance.
+      if(dist[i]-dist[i-1]<0.01)continue;
+      let next=i+1;
+      while(next<pts.length && dist[next]-dist[i]<0.01)next++;
+      if(next>=pts.length)continue;
+      const a=pts[i-1],b=pts[i],c=pts[next];
       const abx=b.x-a.x,aby=b.y-a.y,bcx=c.x-b.x,bcy=c.y-b.y;
       const l1=Math.hypot(abx,aby),l2=Math.hypot(bcx,bcy);
-      if (l1<0.01||l2<0.01)continue;
+      if(l1<0.01||l2<0.01)continue;
       const angle=Math.acos(clamp((abx*bcx+aby*bcy)/(l1*l2),-1,1))*180/Math.PI;
-      if(angle>=48)result.push(Object.freeze({distance:path.cumulative[i],angle,index:i}));
+      if(angle>=48)result.push(Object.freeze({distance:dist[i],angle,index:i}));
     }
     return result;
   }
