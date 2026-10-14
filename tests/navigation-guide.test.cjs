@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { enhanceSteps } = require('../assets/js/navigation-guide.js');
+const { enhanceSteps, placeLabel } = require('../assets/js/navigation-guide.js');
 
 function mock() {
   const pts = [{x:0,y:0},{x:2,y:0},{x:2,y:20},{x:20,y:20}];
@@ -29,7 +29,7 @@ test('origin is not a separate instruction, short approach keeps its turn', () =
   assert.equal(simplified[1].main,'Turn right · 18 m');
   assert.equal(simplified[1].pathStartIndex,2);
   assert.equal(simplified[1].pathEndIndex,3);
-  assert.equal(simplified[2].main,'Look for stall 10.08');
+  assert.equal(simplified[2].main,'Look for Stall 10.08');
   assert.equal(simplified[2].pathStartIndex,3);
   assert.equal(steps.length,5,'source not mutated');
 });
@@ -58,7 +58,7 @@ test('last 1-3 m entrance movement is folded into arrival, without erasing turn'
   assert.equal(out.length,3);
   assert.equal(out[0].main,'Follow the aisle · 12 m');
   assert.equal(out[1].main,'Turn left · 22 m');
-  assert.equal(out[2].main,'Turn right to stall 10.08');
+  assert.equal(out[2].main,'Turn right to Stall 10.08');
   assert.equal(out[2].type,'end');
   assert.equal(out[2].turnsCount,1);
   assert.equal(out[2].pathStartIndex,2);
@@ -100,13 +100,42 @@ test('two-step straight route does not invent turns or arrival confirmation', ()
   const out=enhanceSteps(steps,pts,1);
   assert.equal(out.length,2);
   assert.equal(out[0].main,'Follow the aisle · 30 m');
-  assert.equal(out[1].main,'Look for stall B');
+  assert.equal(out[1].main,'Look for Stall B');
   assert.equal(out.reduce((n,x)=>n+(x.turnsCount||0),0),0);
 });
 
 test('no route or unavailable guide inputs fail safely', () => {
   assert.deepEqual(enhanceSteps([],[],1),[]);
   assert.equal(enhanceSteps(null,[],1),null);
+});
+
+test('company name is preferred for instruction landmarks; stall then hall are fallback', () => {
+  assert.equal(placeLabel({txtComName:'  Jay   Corporation ',StallNo:'10.37'},'', 'HALL 1'),'Jay Corporation');
+  assert.equal(placeLabel({txtComName:'N/A',StallNo:'10.37'},'','HALL 1'),'Stall 10.37');
+  assert.equal(placeLabel({txtComName:null,StallNo:'12.73'},'','HALL 12'),'Stall 12.73');
+  assert.equal(placeLabel({txtComName:'--',StallNo:''},'','HALL 12'),'HALL 12');
+  assert.equal(placeLabel({txtComName:'',StallNo:'',Text:'Visitor Lounge'},'','HALL 12'),'Visitor Lounge');
+});
+test('end instructions and spoken guidance use the real destination company name', () => {
+  const {pts,steps}=mock();
+  const out=enhanceSteps(steps,pts,1,'Lubi Industries LLP');
+  assert.equal(out[out.length-1].main,'Look for Lubi Industries LLP');
+  assert.equal(out[out.length-1].spoken,'At the end of your route, look for Lubi Industries LLP');
+  assert.equal(out.reduce((n,x)=>n+(x.turnsCount||0),0),2);
+  // A one-metre final approach keeps the turn but names the correct company.
+  const tiny=[{x:0,y:0},{x:0,y:12},{x:22,y:12},{x:22,y:13}];
+  const final=[
+    {type:'start',main:'Start at 10.37',pathStartIndex:0,pathEndIndex:0},
+    {type:'straight',pathStartIndex:0,pathEndIndex:1},
+    {type:'left',pathStartIndex:1,pathEndIndex:2},
+    {type:'right',pathStartIndex:2,pathEndIndex:3},
+    {type:'end',main:'10.08 is on your right',pathStartIndex:3,pathEndIndex:3}
+  ];
+  const short=enhanceSteps(final,tiny,1,'Lubi Industries LLP');
+  assert.equal(short.at(-1).main,'Turn right to Lubi Industries LLP');
+  assert.match(short.at(-1).spoken,/Lubi Industries LLP/);
+  assert.equal(short.at(-1).turnsCount,1);
+  assert.equal(short.at(-1).pathEndIndex,3);
 });
 
 test('directions panel keeps a single optional voice button and clickable instructions', () => {
@@ -127,12 +156,19 @@ test('directions panel keeps a single optional voice button and clickable instru
   assert.ok(html.includes('onclick="toggleVoiceGuidance()"'));
   assert.ok(html.includes('class="drawer-voice-btn"'));
   assert.ok(html.includes('role="status" aria-live="polite"'));
-  assert.ok(html.includes('app.js?v=round-avatar-v9'));
+  assert.ok(html.includes('app.js?v=company-directions-v10'));
   assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
   assert.ok(app.includes('function setNavStep(index)'));
   assert.ok(app.includes('el.addEventListener(\'click\', () => setNavStep(idx))'));
   assert.ok(app.includes('window.HallNavGuide.enhanceSteps'));
+  assert.ok(app.includes('window.HallNavGuide?.placeLabel(nearest.data'));
+  assert.ok(app.includes('destinationPlace'));
+  assert.ok(!html.includes('id="btnWalkAvatarPhoto"'));
+  assert.ok(!html.includes('id="walkAvatarPhotoInput"'));
+  assert.ok(!html.includes('id="walkAvatarPhotoStatus"'));
+  assert.ok(html.includes('navigation-guide.js?v=company-directions-v10'));
+  assert.ok(html.includes('app.js?v=company-directions-v10'));
   assert.ok(app.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'turn icons still work');
   assert.ok(app.includes('for (let i = start + 1; i <= end; i++) ctx.lineTo'), 'highlight actual route');
   assert.ok(app.includes('function toggleVoiceGuidance()'));
