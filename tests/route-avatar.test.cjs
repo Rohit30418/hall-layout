@@ -77,7 +77,9 @@ test('preview UI remains optional, voice remains, and both map modes use same ro
   assert.ok(css.includes('#nav-drawer .walk-preview-play'));
   assert.ok(app.includes('function drawWalkPreviewAvatar2d()'));
   assert.ok(app.includes('function updateWalkPreviewAvatar3(now)'));
-  assert.ok(app.includes('advanceWalkPreview(performance.now())'));
+  assert.ok(app.includes('advanceWalkPreview(frameNow)'));
+  assert.ok(app.includes('updateCinematicCamera2d(frameNow)'));
+  assert.ok(app.includes('updateCinematicCamera3d(now)'));
   assert.ok(app.includes("if (currentView === '3d') advanceWalkPreview(now)"));
   assert.ok(app.includes('prepareWalkPreview(pts)'));
   assert.ok(app.includes('prepareWalkPreview(worldPts)'));
