@@ -5,7 +5,26 @@
 (function (root) {
   'use strict';
 
-  function enhanceSteps(steps, points, metersPerUnit) {
+  // Use the exhibitor/company name from hall API, then booth number; if both
+  // are unavailable for a hall-level destination, use the selected hall label.
+  // Never invent a company name from a neighboring stall.
+  function placeLabel(data, fallback = '', hallLabel = '') {
+    const meaningful = value => {
+      const name = value == null ? '' : String(value).replace(/\s+/g,' ').trim();
+      return /^(?:n\/?a|na|null|undefined|none|--+|not available|tba|tbd)$/i.test(name) ? '' : name;
+    };
+    const company = meaningful(data?.txtComName);
+    if (company) return company;
+    const stall = meaningful(data?.StallNo);
+    if (stall) return 'Stall ' + stall;
+    const utility = meaningful(data?.Text);
+    if (utility) return utility;
+    const fall = meaningful(fallback);
+    if (fall) return /^(?:stall|hall)\s+/i.test(fall) ? fall : 'Stall ' + fall;
+    return meaningful(hallLabel) || 'your destination';
+  }
+
+  function enhanceSteps(steps, points, metersPerUnit, destinationPlace = '') {
     if (!Array.isArray(steps) || steps.length < 3 || !Array.isArray(points)) return steps;
     const unit = Number.isFinite(metersPerUnit) && metersPerUnit > 0 ? metersPerUnit : 1;
     const isTurn = s => !!s && ['left', 'right', 'uturn'].includes(s.type);
@@ -91,12 +110,12 @@
       sub: side ? (side === 'straight ahead' ? 'Your destination is ahead' : 'Your destination is ' + side) : (ending.sub || "You've arrived"),
       turnsCount: 0
     });
-    return compactVisibleSteps(result, points, unit);
+    return compactVisibleSteps(result, points, unit, destinationPlace);
   }
 
   // Show ACTIONS instead of separately numbering the origin and destination.
   // This changes only instructions and highlighted point ranges; never geometry.
-  function compactVisibleSteps(input, points, unit) {
+  function compactVisibleSteps(input, points, unit, destinationPlace = '') {
     if (!Array.isArray(input) || input.length < 3) return input;
     const items = input.map(s => ({ ...s }));
     const first = items[0];
@@ -120,6 +139,7 @@
     const destination = original.includes(' is ') ? original.split(' is ')[0].trim()
       : original.replace(/^(?:Arrive at|Find|Look for)\s+/i, '').trim();
     const name = destination || 'your destination';
+    const place = String(destinationPlace || '').trim() || (/^(?:stall|hall)\s+/i.test(name) ? name : 'Stall ' + name);
     const prev = items[items.length - 2];
     if (prev && prev.type !== 'start' && Number.isInteger(prev.pathStartIndex) &&
         Number.isInteger(prev.pathEndIndex) && prev.pathEndIndex > prev.pathStartIndex) {
@@ -129,11 +149,11 @@
       // any turn explicitly in both on-screen and spoken instructions.
       if (shortApproach && ['straight','right','left'].includes(prev.type)) {
         const instruction = realTurn
-          ? (prev.type === 'uturn' ? 'Turn around' : prev.type === 'right' ? 'Turn right' : 'Turn left') + ' to stall ' + name
-          : 'Look for stall ' + name;
+          ? (prev.type === 'uturn' ? 'Turn around' : prev.type === 'right' ? 'Turn right' : 'Turn left') + ' to ' + place
+          : 'Look for ' + place;
         const spoken = realTurn
-          ? instruction.replace(/stall /,'stall number ') + ' at the end of this route'
-          : 'At the end of the aisle, look for stall number ' + name;
+          ? instruction + ' at the end of this route'
+          : 'At the end of the aisle, look for ' + place;
         items[items.length - 2] = {
           ...last,
           type: 'end',
@@ -148,8 +168,8 @@
         return items;
       }
     }
-    last.main = 'Look for stall ' + name;
-    last.spoken = 'At the end of your route, look for stall number ' + name;
+    last.main = 'Look for ' + place;
+    last.spoken = 'At the end of your route, look for ' + place;
     last.sub = 'Follow the route to the destination entrance';
     return items;
   }
@@ -163,7 +183,7 @@
     return Math.max(1, Math.round(len * unit));
   }
 
-  const guide = Object.freeze({ enhanceSteps });
+  const guide = Object.freeze({ enhanceSteps, placeLabel });
   if (typeof module === 'object' && module.exports) module.exports = guide;
   if (root) root.HallNavGuide = guide;
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null));
