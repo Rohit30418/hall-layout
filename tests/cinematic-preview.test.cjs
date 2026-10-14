@@ -1,0 +1,72 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const route=require('../assets/js/route-avatar.js');
+const cinema=require('../assets/js/cinematic-preview.js');
+
+const eps=1e-5;
+const near=(a,b)=>assert.ok(Math.abs(a-b)<eps,String(a)+' should equal '+String(b));
+test('camera detects only genuine route bends, preserving original path indices',()=>{
+  const path=route.buildPath([{x:0,y:0},{x:0,y:30},{x:0,y:30},{x:40,y:30},{x:80,y:30},{x:80,y:70}]);
+  const turns=cinema.cornerDistances(path);
+  assert.equal(turns.length,2);
+  near(turns[0].distance,30);
+  near(turns[1].distance,110);
+  assert.deepEqual(turns.map(x=>x.index),[2,4]);
+});
+test('major turns get zoom emphasis without triggering when distant',()=>{
+  const p=route.buildPath([{x:0,y:0},{x:100,y:0},{x:100,y:100}]);
+  const turns=cinema.cornerDistances(p);
+  assert.ok(cinema.turnFocus(turns,100,p.total)>0.99);
+  assert.equal(cinema.turnFocus(turns,0,p.total),0);
+  const view={left:45,right:345,top:70,bottom:530};
+  const canvas={width:390,height:780};
+  const start=cinema.cameraTarget2d(p,turns,0,1,canvas,view,route.sample);
+  const bend=cinema.cameraTarget2d(p,turns,100,1,canvas,view,route.sample);
+  assert.ok(bend.zoom>start.zoom);
+  assert.ok(start.zoom>=0.065&&bend.zoom<=2.5);
+  const sx=(route.sample(p,100).x-bend.x)*bend.zoom+canvas.width/2;
+  const sy=(route.sample(p,100).y-bend.y)*bend.zoom+canvas.height/2;
+  assert.ok(sx>=view.left && sx<=view.right, 'walker x should stay visible');
+  assert.ok(sy>=view.top && sy<=view.bottom, 'walker y should stay above bottom sheet');
+});
+test('cinematic follow interpolates smoothly and respects reduced-motion preference',()=>{
+  const current={x:0,y:0,zoom:1};
+  const target={x:100,y:200,zoom:2};
+  assert.equal(cinema.easeCamera2d(current,target,16,false),true);
+  assert.ok(current.x>0&&current.x<100);
+  assert.ok(current.y>0&&current.y<200);
+  assert.ok(current.zoom>1&&current.zoom<2);
+  assert.equal(cinema.easeCamera2d(current,target,16,true),true);
+  near(current.x,100);near(current.y,200);near(current.zoom,2);
+});
+test('3D camera gently dollies in for corners and destination',()=>{
+  const p=route.buildPath([{x:0,y:0},{x:0,y:100},{x:100,y:100}]);
+  const turns=cinema.cornerDistances(p);
+  near(cinema.cameraDolly3d(0,p.total,turns),1);
+  assert.ok(cinema.cameraDolly3d(100,p.total,turns)<1);
+  assert.ok(cinema.cameraDolly3d(200,p.total,turns)<1);
+});
+test('new script loads before app, existing voice remains opt-in and both cameras are wired',()=>{
+  const base=path.join(__dirname,'..');
+  const html=fs.readFileSync(path.join(base,'ViewhallLayout.html'),'utf8');
+  const app=fs.readFileSync(path.join(base,'assets/js/app.js'),'utf8');
+  assert.ok(html.includes('cinematic-preview.js?v=cinematic-v11'));
+  assert.ok(html.indexOf('cinematic-preview.js')<html.indexOf('app.js?v=cinematic-v11'));
+  assert.ok(html.includes('Cinematic preview'));
+  assert.ok(html.includes('id="btnVoiceGuide"'));
+  assert.ok(app.includes('function updateCinematicCamera2d(now)'));
+  assert.ok(app.includes('function updateCinematicCamera3d(now)'));
+  assert.ok(app.includes('drawCinematicDestination2d();'));
+  assert.ok(app.includes('updateCinematicDestination3d();'));
+  assert.ok(app.includes('cinemaHalo3 = new THREE.Mesh'));
+  assert.ok(app.includes('controls3.addEventListener(\'start\', suspendCinematicTracking)'));
+  assert.ok(app.includes('suspendCinematicTracking();'));
+  assert.ok(app.includes('if (voiceGuidanceOn) readSelectedNavStep()'));
+  assert.ok(app.includes('function resetCinematicState()'));
+  assert.ok(app.includes('resetCinematicState();'));
+  assert.ok(!app.includes('function chooseWalkAvatarPhoto'));
+  assert.ok(!html.includes('walkAvatarPhotoInput'));
+});
