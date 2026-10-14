@@ -25,28 +25,34 @@
     }
     return turns;
   }
-  function atDistance(path,turns,distance,metresPerUnit,destination='') {
+  function atDistance(path,turns,distance,destination='') {
     if (!path || !(path.total>0)) return null;
     const d=Math.max(0,Math.min(path.total,Number.isFinite(distance)?distance:0));
-    const unit=Number.isFinite(metresPerUnit)&&metresPerUnit>0?metresPerUnit:1;
     const place=String(destination || 'your destination').trim() || 'your destination';
     if(d>=path.total-0.00001) {
-      return {type:'arrived',title:'You have arrived',distanceText:'',detail:place,announcement:'You have arrived at '+place};
+      return {type:'arrived',phase:'arrived',title:'You have arrived',
+        detail:place,announcement:'You have arrived at '+place,eventKey:'arrived'};
     }
     const next=Array.isArray(turns)?turns.find(t=>t.distance>d+0.00001):null;
     if(next) {
-      const remain=Math.max(0,(next.distance-d)*unit);
-      const metres=Math.ceil(remain);
-      const now=remain<=1;
-      const name=next.type==='uturn'?'Turn around':next.type==='right'?'Turn right':'Turn left';
-      return {type:next.type,title:name,distanceText:now?'Now':'In '+metres+' m',
-        detail: 'Follow the highlighted route',
-        announcement: now?name+' now':name+' in '+metres+' metres',
-        eventKey: next.index};
+      const remain=Math.max(0,next.distance-d);
+      // "Now" is based on a tiny window in map coordinates, not metres.
+      // It signifies approaching the real route vertex, never physical tracking.
+      const threshold=Math.min(6,Math.max(1,path.total*0.015));
+      const now=remain<=threshold;
+      const verb=next.type==='uturn'?'Turn around':next.type==='right'?'Turn right':'Turn left';
+      const label=next.type==='uturn'
+        ? (now?'Turn around now':'Turn around ahead')
+        : verb+(now?' now':' ahead');
+      return {type:next.type,phase:now?'now':'ahead',title:label,
+        detail:'Follow the highlighted route',announcement:label,eventKey:next.index};
     }
-    const remain=Math.ceil(Math.max(0,(path.total-d)*unit));
-    return {type:'destination',title:'Destination ahead',distanceText:remain<=1?'Almost there':'In '+remain+' m',
-      detail:place,announcement:'Continue to '+place,eventKey:'end'};
+    const nearingEnd=(path.total-d)<=Math.min(15,Math.max(3,path.total*0.12));
+    return {type:'destination',phase:nearingEnd?'near':'approach',
+      title:nearingEnd?'Destination ahead':'Continue straight',
+      detail:nearingEnd?place:'Follow the blue route',
+      announcement:nearingEnd?'Approaching '+place:'Continue straight along the blue route',
+      eventKey:'end'};
   }
   const helper=Object.freeze({buildTurns,atDistance});
   if(typeof module==='object'&&module.exports)module.exports=helper;
