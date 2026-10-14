@@ -77,6 +77,7 @@ function openNavDrawer() {
   document.getElementById('nav-drawer').classList.add('open');
   document.body.classList.add('nav-drawer-visible');
   if (window.HallMobileNavigation) window.HallMobileNavigation.onOpen();
+  syncNextTurnHud(true);
 }
 function closeNavDrawer() {
   pauseWalkPreview();
