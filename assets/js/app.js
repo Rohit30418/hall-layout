@@ -1078,9 +1078,12 @@ function resetCinematicState() {
 }
 function suspendCinematicTracking() {
   // Visitors can take control of the map while preview keeps progressing.
-  // Pausing and resuming the preview restores follow mode.
-  if (!walkPreviewPlaying) return;
+  // Pausing and resuming the preview restores follow mode from that view.
+  if (!walkPreviewPlaying || cinemaSuspended) return;
   cinemaSuspended = true;
+  cinemaBaseZoom = null;
+  cinema3Offset = null;
+  cinema3Distance = null;
   cinemaLastFrame2d = null;
   cinemaLastFrame3d = null;
   syncWalkPreviewUi(true);
