@@ -41,14 +41,16 @@
     };
     const verb = type => type === 'left' ? 'Turn left' : type === 'right' ? 'Turn right'
       : type === 'uturn' ? 'Turn around' : 'Continue straight';
-    const pretty = (type, metres, first) => {
-      if (first && type === 'straight') return 'Follow the blue route · ' + metres + ' m';
-      if (type === 'straight') return 'Continue straight · ' + metres + ' m';
-      return verb(type) + ' · ' + metres + ' m';
+    const pretty = (type, first) => {
+      if (first && type === 'straight') return 'Follow the blue route';
+      if (type === 'straight') return 'Continue straight';
+      return verb(type);
     };
-    const audio = (type, metres, first) => {
-      if (type === 'straight') return (first ? 'Follow the highlighted route for ' : 'Continue straight for ') + metres + ' metres';
-      return verb(type) + ' and walk ' + metres + ' metres';
+    const audio = (type, first) => {
+      if (type === 'straight') return first
+        ? 'Starting at your stall, follow the highlighted route'
+        : 'Continue straight along the blue route';
+      return verb(type) + ' and follow the blue route';
     };
     const start = { ...steps[0], main: steps[0].main, sub: 'Follow the highlighted path to the aisle', turnsCount: 0 };
     const result = [start];
@@ -63,21 +65,20 @@
         current.pathEndIndex === next.pathStartIndex && d <= 3;
 
       if (canMerge) {
-        const nextD = distance(next);
         const count = turnCount(current) + turnCount(next);
         const firstText = firstWalk && current.type === 'straight'
           ? 'Join the aisle'
           : (current.type === 'straight' ? 'Move a short distance' : verb(current.type));
         const secondText = next.type === 'straight'
           ? 'continue' : (next.type === 'left' ? 'turn left' : 'turn right');
-        const main = firstText + ', then ' + secondText + ' · ' + nextD + ' m';
+        const main = firstText + ', then ' + secondText;
         result.push({
           ...next,
           type: 'bend',
           icon: 'fa-route',
           iconClass: 'si-bend',
           main,
-          spoken: firstText + ', then ' + secondText + ' and walk ' + nextD + ' metres',
+          spoken: firstText + ', then ' + secondText + ' and follow the blue route',
           sub: next.sub || current.sub || null,
           turnsCount: count,
           pathStartIndex: current.pathStartIndex,
@@ -91,11 +92,11 @@
         result.push({ ...current, turnsCount: turnCount(current) });
         continue;
       }
-      const heading = pretty(current.type, d, firstWalk);
+      const heading = pretty(current.type, firstWalk);
       result.push({
         ...current,
         main: heading,
-        spoken: audio(current.type, d, firstWalk),
+        spoken: audio(current.type, firstWalk),
         turnsCount: turnCount(current)
       });
     }
@@ -126,9 +127,8 @@
       movement.pathStartIndex = Math.min(first.pathStartIndex || 0, movement.pathStartIndex);
       // The first walking instruction already starts where the origin marker is.
       if (movement.type === 'straight') {
-        const meters = distanceAlong(points, movement.pathStartIndex, movement.pathEndIndex, unit);
-        movement.main = 'Follow the aisle · ' + meters + ' m';
-        movement.spoken = 'Starting at your stall, follow the blue route for ' + meters + ' metres';
+        movement.main = 'Follow the aisle';
+        movement.spoken = 'Starting at your stall, follow the blue route';
       }
       movement.origin = first.main;
       items.shift();
