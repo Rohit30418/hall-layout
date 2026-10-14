@@ -21,17 +21,18 @@ test('origin is not a separate instruction, short approach keeps its turn', () =
   const {pts,steps}=mock();
   const simplified=enhanceSteps(steps,pts,1);
   assert.equal(simplified.length,3);
-  assert.equal(simplified[0].main,'Join the aisle, then turn left · 20 m');
+  assert.equal(simplified[0].main,'Join the aisle, then turn left');
   assert.equal(simplified[0].pathStartIndex,0);
   assert.equal(simplified[0].pathEndIndex,2);
   assert.equal(simplified[0].turnsCount,1);
   assert.equal(simplified[0].sub,'Near stall 10.15');
-  assert.equal(simplified[1].main,'Turn right · 18 m');
+  assert.equal(simplified[1].main,'Turn right');
   assert.equal(simplified[1].pathStartIndex,2);
   assert.equal(simplified[1].pathEndIndex,3);
   assert.equal(simplified[2].main,'Look for Stall 10.08');
   assert.equal(simplified[2].pathStartIndex,3);
   assert.equal(steps.length,5,'source not mutated');
+  assert.ok(simplified.every(step => !/\\b\\d+(?:\\.\\d+)?\\s*(?:m|metres|minutes)\\b/i.test(step.main+' '+(step.spoken||''))), 'no unverified measurement in navigation text');
 });
 
 test('two consecutive required turns remain counted and spoken', () => {
@@ -39,7 +40,7 @@ test('two consecutive required turns remain counted and spoken', () => {
   steps[1].type='right';
   const simplified=enhanceSteps(steps,pts,1);
   assert.equal(simplified.length,3);
-  assert.equal(simplified[0].main,'Turn right, then turn left · 20 m');
+  assert.equal(simplified[0].main,'Turn right, then turn left');
   assert.match(simplified[0].spoken,/Turn right, then turn left/);
   assert.equal(simplified[0].turnsCount,2);
   assert.equal(simplified.reduce((sum,x)=>sum+(x.turnsCount||0),0),3);
@@ -56,8 +57,8 @@ test('last 1-3 m entrance movement is folded into arrival, without erasing turn'
   ];
   const out=enhanceSteps(steps,pts,1);
   assert.equal(out.length,3);
-  assert.equal(out[0].main,'Follow the aisle · 12 m');
-  assert.equal(out[1].main,'Turn left · 22 m');
+  assert.equal(out[0].main,'Follow the aisle');
+  assert.equal(out[1].main,'Turn left');
   assert.equal(out[2].main,'Turn right to Stall 10.08');
   assert.equal(out[2].type,'end');
   assert.equal(out[2].turnsCount,1);
@@ -84,7 +85,7 @@ test('long first segment is still displayed; short merging is not overused', () 
   const {pts,steps}=mock();
   const out=enhanceSteps(steps,pts,3);
   assert.equal(out.length,4);
-  assert.equal(out[0].main,'Follow the aisle · 6 m');
+  assert.equal(out[0].main,'Follow the aisle');
   assert.equal(out[0].pathStartIndex,0);
   assert.equal(out[0].pathEndIndex,1);
   assert.equal(out[1].pathStartIndex,1);
@@ -99,7 +100,7 @@ test('two-step straight route does not invent turns or arrival confirmation', ()
   ];
   const out=enhanceSteps(steps,pts,1);
   assert.equal(out.length,2);
-  assert.equal(out[0].main,'Follow the aisle · 30 m');
+  assert.equal(out[0].main,'Follow the aisle');
   assert.equal(out[1].main,'Look for Stall B');
   assert.equal(out.reduce((n,x)=>n+(x.turnsCount||0),0),0);
 });
@@ -156,7 +157,7 @@ test('directions panel keeps a single optional voice button and clickable instru
   assert.ok(html.includes('onclick="toggleVoiceGuidance()"'));
   assert.ok(html.includes('class="drawer-voice-btn"'));
   assert.ok(html.includes('role="status" aria-live="polite"'));
-  assert.ok(html.includes('app.js?v=turn-hud-v1'));
+  assert.ok(html.includes('app.js?v=direction-only-v2'));
   assert.ok(html.includes('ui-wow.js?v=minimal-v5'));
   assert.ok(html.indexOf('assets/js/navigation-guide.js') < html.indexOf('assets/js/app.js'));
   assert.ok(app.includes('function setNavStep(index)'));
@@ -167,8 +168,8 @@ test('directions panel keeps a single optional voice button and clickable instru
   assert.ok(!html.includes('id="btnWalkAvatarPhoto"'));
   assert.ok(!html.includes('id="walkAvatarPhotoInput"'));
   assert.ok(!html.includes('id="walkAvatarPhotoStatus"'));
-  assert.ok(html.includes('navigation-guide.js?v=company-directions-v10'));
-  assert.ok(html.includes('app.js?v=turn-hud-v1'));
+  assert.ok(html.includes('navigation-guide.js?v=direction-only-v2'));
+  assert.ok(html.includes('app.js?v=direction-only-v2'));
   assert.ok(app.includes("'fa-arrow-right' : 'fa-arrow-left'"), 'turn icons still work');
   assert.ok(app.includes('for (let i = start + 1; i <= end; i++) ctx.lineTo'), 'highlight actual route');
   assert.ok(app.includes('function toggleVoiceGuidance()'));
