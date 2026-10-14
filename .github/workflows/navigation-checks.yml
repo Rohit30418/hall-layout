@@ -22,5 +22,6 @@ jobs:
           node --check assets/js/route-avatar.js
           node --check assets/js/mobile-navigation.js
           node --check assets/js/cinematic-preview.js
+          node --check assets/js/next-turn-hud.js
       - name: Route and smart guide tests
-        run: node --test tests/directions.test.cjs tests/navigation-guide.test.cjs tests/route-avatar.test.cjs tests/mobile-navigation.test.cjs tests/cinematic-preview.test.cjs
+        run: node --test tests/directions.test.cjs tests/navigation-guide.test.cjs tests/route-avatar.test.cjs tests/mobile-navigation.test.cjs tests/cinematic-preview.test.cjs tests/next-turn-hud.test.cjs
