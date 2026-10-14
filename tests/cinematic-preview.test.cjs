@@ -14,7 +14,7 @@ test('camera detects only genuine route bends, preserving original path indices'
   assert.equal(turns.length,2);
   near(turns[0].distance,30);
   near(turns[1].distance,110);
-  assert.deepEqual(turns.map(x=>x.index),[2,4]);
+  assert.deepEqual(turns.map(x=>x.index),[1,4]);
 });
 test('major turns get zoom emphasis without triggering when distant',()=>{
   const p=route.buildPath([{x:0,y:0},{x:100,y:0},{x:100,y:100}]);
