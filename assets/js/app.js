@@ -1190,41 +1190,7 @@ function advanceWalkPreview(now) {
 // Premium 2.5D visitor mascot. Keep the character upright like a map pin,
 // while the tiny ground arrow shows actual route heading. This prevents
 // upside-down/flattened bodies as the route turns. Canvas-only; no assets/API.
-// Photo-map-marker preview: tiny circular portrait, soft ring and a separate
-// heading pointer. The portrait stays upright while the pointer turns.
-let walkAvatarImage2d = null;
-let walkAvatarPhotoRequest = 0;
-function chooseWalkAvatarPhoto() {
-  const input = document.getElementById('walkAvatarPhotoInput');
-  if (input) input.click();
-}
-function loadWalkAvatarPhoto(input) {
-  const file = input?.files?.[0];
-  if (!file) return;
-  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-  const status = document.getElementById('walkAvatarPhotoStatus');
-  if (!allowed.includes(file.type) || file.size > 3 * 1024 * 1024) {
-    if (status) status.textContent = 'Use a JPG, PNG or WebP photo up to 3 MB.';
-    input.value = '';
-    return;
-  }
-  const request = ++walkAvatarPhotoRequest;
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = function () {
-    URL.revokeObjectURL(url);
-    if (request !== walkAvatarPhotoRequest) return;
-    walkAvatarImage2d = img;
-    if (status) status.textContent = 'Avatar photo ready. It stays in this browser tab.';
-  };
-  img.onerror = function () {
-    URL.revokeObjectURL(url);
-    if (request === walkAvatarPhotoRequest && status) status.textContent = 'Could not load that photo.';
-  };
-  img.src = url;
-  input.value = '';
-}
-
+// Compact circular route marker. No user-photo uploads or camera permissions.
 function drawWalkPreviewAvatar2d() {
   if (!walkPreviewPath || currentView !== '2d') return;
   const pos = window.HallWalkPreview.sample(walkPreviewPath, walkPreviewDistance);
@@ -1273,35 +1239,26 @@ function drawWalkPreviewAvatar2d() {
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
   ctx.clip();
 
-  if (walkAvatarImage2d && walkAvatarImage2d.complete && walkAvatarImage2d.naturalWidth > 0) {
-    // Crop portraits to fill the round marker without stretching.
-    const img = walkAvatarImage2d;
-    const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
-    const srcX = (img.naturalWidth - srcSize) / 2;
-    const srcY = (img.naturalHeight - srcSize) / 2;
-    ctx.drawImage(img, srcX, srcY, srcSize, srcSize, -radius, -radius, radius * 2, radius * 2);
-  } else {
-    // Default profile silhouette: no copyrighted character or external image.
-    const fill = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    fill.addColorStop(0, '#dbeafe');
-    fill.addColorStop(1, '#bfdbfe');
-    ctx.fillStyle = fill;
-    ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
-    ctx.fillStyle = '#3b82f6';
-    ctx.beginPath();
-    ctx.ellipse(0, radius * 0.95, radius * 0.91, radius * 0.72, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f5caa1';
-    ctx.beginPath();
-    ctx.arc(0, -radius * 0.28, radius * 0.40, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#1e3a8a';
-    ctx.beginPath();
-    ctx.arc(0, -radius * 0.38, radius * 0.41, Math.PI * 1.05, Math.PI * 1.96);
-    ctx.lineTo(radius * 0.38, -radius * 0.28);
-    ctx.closePath();
-    ctx.fill();
-  }
+  // Neutral illustrated profile is rendered locally, with no uploaded image.
+  const fill = ctx.createLinearGradient(-radius, -radius, radius, radius);
+  fill.addColorStop(0, '#dbeafe');
+  fill.addColorStop(1, '#bfdbfe');
+  ctx.fillStyle = fill;
+  ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+  ctx.fillStyle = '#3b82f6';
+  ctx.beginPath();
+  ctx.ellipse(0, radius * 0.95, radius * 0.91, radius * 0.72, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f5caa1';
+  ctx.beginPath();
+  ctx.arc(0, -radius * 0.28, radius * 0.40, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1e3a8a';
+  ctx.beginPath();
+  ctx.arc(0, -radius * 0.38, radius * 0.41, Math.PI * 1.05, Math.PI * 1.96);
+  ctx.lineTo(radius * 0.38, -radius * 0.28);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 
   // Outer rim plus a tiny moving pulse, kept small around stall numbers.
@@ -3078,29 +3035,26 @@ function updateRouteMetrics(points) {
 
 
 function nearestStallLabel(wx, wy, excludeNos = []) {
-  // Use distance to the actual stall boundary, not the booth centre.
-  // Avoid labeling distant booths as landmarks across a wide aisle.
+  // Use actual booth geometry and verified hall API names only.
   const excluded = new Set(excludeNos.map(x => String(x || '').trim().toLowerCase()));
   let nearest = null;
   let bestDistance = Infinity;
   for (const d of allStallData) {
-    const name = String(d.StallNo || '').trim();
-    if (!name || excluded.has(name.toLowerCase())) continue;
-    const x0 = d.dLeft, x1 = d.dLeft + d.dWidth;
-    const y0 = d.dTop, y1 = d.dTop + d.dHeight;
-    if (![x0, x1, y0, y1].every(Number.isFinite)) continue;
-    const dx = Math.max(x0 - wx, 0, wx - x1);
-    const dy = Math.max(y0 - wy, 0, wy - y1);
-    const distance = Math.hypot(dx, dy);
+    const number = String(d.StallNo || '').trim();
+    if (!number || excluded.has(number.toLowerCase())) continue;
+    const x0=d.dLeft,x1=d.dLeft+d.dWidth,y0=d.dTop,y1=d.dTop+d.dHeight;
+    if (![x0,x1,y0,y1].every(Number.isFinite)) continue;
+    const dx=Math.max(x0-wx,0,wx-x1),dy=Math.max(y0-wy,0,wy-y1);
+    const distance=Math.hypot(dx,dy);
     if (distance < bestDistance) {
-      bestDistance = distance;
-      nearest = { name, width: d.dWidth, height: d.dHeight };
+      bestDistance=distance;
+      nearest={data:d,width:d.dWidth,height:d.dHeight};
     }
   }
-  // Be conservative: wrong landmarks are worse than no landmark.
   if (!nearest) return null;
-  const threshold = Math.max(10, Math.min(28, Math.min(nearest.width, nearest.height) * 0.75));
-  return bestDistance <= threshold ? nearest.name : null;
+  const threshold=Math.max(10,Math.min(28,Math.min(nearest.width,nearest.height)*0.75));
+  if (bestDistance>threshold) return null;
+  return window.HallNavGuide?.placeLabel(nearest.data, nearest.data.StallNo) || ('Stall ' + nearest.data.StallNo);
 }
 
 function compressDirectionPoints(points) {
@@ -3156,7 +3110,9 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   // Waypoints here are the EXACT points used by the 2D/3D line.
   const pts = waypoints;
   const steps = [];
-  steps.push({ type: 'start', icon: 'fa-circle-dot', iconClass: 'si-start', main: `Start at ${fromLabel}`, sub: 'Move to the nearest aisle', landmark: null, pathStartIndex: 0, pathEndIndex: 0 });
+  const startPlace = window.HallNavGuide?.placeLabel(meta.fromD, fromLabel) || fromLabel;
+  const destinationPlace = window.HallNavGuide?.placeLabel(meta.toD, toLabel, document.getElementById('hallBtnText')?.textContent) || toLabel;
+  steps.push({ type: 'start', icon: 'fa-circle-dot', iconClass: 'si-start', main: `Start at ${startPlace}`, sub: 'Move to the nearest aisle', landmark: null, pathStartIndex: 0, pathEndIndex: 0 });
 
   if (pts.length < 2) {
     steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `Arrive at ${toLabel}`, sub: null, landmark: null, pathStartIndex: 0, pathEndIndex: 0 });
@@ -3190,7 +3146,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
 
     const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
     const landmark = nearestStallLabel(midX, midY, [fromLabel, toLabel]);
-    steps.push({ type, icon, iconClass, main, sub: landmark ? `Near stall ${landmark}` : null, landmark: null, pathStartIndex: i - 1, pathEndIndex: i });
+    steps.push({ type, icon, iconClass, main, sub: landmark ? `Near ${landmark}` : null, landmark: null, pathStartIndex: i - 1, pathEndIndex: i });
   }
 
   const sideHint = destinationSideHint(pts, meta.toD);
@@ -3200,7 +3156,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   // preserving every real turn and original path indices. If the optional
   // helper isn't loaded, the existing detailed instructions still work.
   if (typeof window !== 'undefined' && window.HallNavGuide) {
-    return window.HallNavGuide.enhanceSteps(steps, pts, estimateMetersPerUnit());
+    return window.HallNavGuide.enhanceSteps(steps, pts, estimateMetersPerUnit(), destinationPlace);
   }
   return steps;
 }
