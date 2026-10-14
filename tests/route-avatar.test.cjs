@@ -73,7 +73,7 @@ test('preview UI remains optional, voice remains, and both map modes use same ro
   assert.ok(html.includes('id="btnVoiceGuide"'));
   assert.ok(!html.includes('id="btnPrevStep"'));
   assert.ok(!html.includes('id="btnNextStep"'));
-  assert.ok(html.indexOf('route-avatar.js?v=walk-preview-v7')<html.indexOf('app.js?v=turn-hud-v1'));
+  assert.ok(html.indexOf('route-avatar.js?v=walk-preview-v7')<html.indexOf('app.js?v=direction-only-v2'));
   assert.ok(css.includes('#nav-drawer .walk-preview-play'));
   assert.ok(app.includes('function drawWalkPreviewAvatar2d()'));
   assert.ok(app.includes('function updateWalkPreviewAvatar3(now)'));
