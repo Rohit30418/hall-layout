@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="assets/css/navigation-guide.css?v=smart-guide-v1" />
 <link rel="stylesheet" href="assets/css/navigation-polish.css?v=walk-preview-v7" />
 <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=mobile-sheet-v1" />
+<link rel="stylesheet" href="assets/css/next-turn-hud.css?v=turn-hud-v1" />
 </head>
 <body>
 <datalist id="stallList"></datalist>
@@ -155,6 +156,20 @@
   <div class="leg-item"><div class="leg-dot" style="background:#1d4ed8"></div>Selected</div>
 </div>
 
+<!-- Lightweight floating next-turn HUD (route preview only, not live GPS) -->
+<div id="nextTurnHud" class="next-turn-hud" role="group" aria-label="Upcoming turn in route preview" aria-hidden="true">
+  <div id="nextTurnHudIcon" class="next-turn-hud-icon" aria-hidden="true">
+    <i class="fa fa-arrow-up"></i>
+  </div>
+  <div class="next-turn-hud-copy">
+    <span id="nextTurnHudKicker" class="next-turn-hud-kicker">UPCOMING TURN · PREVIEW</span>
+    <strong id="nextTurnHudTitle" class="next-turn-hud-title">Continue straight</strong>
+    <span id="nextTurnHudDetail" class="next-turn-hud-detail">Follow the highlighted route</span>
+  </div>
+  <span id="nextTurnHudDistance" class="next-turn-hud-distance">—</span>
+</div>
+<span id="nextTurnHudAnnounce" class="nav-voice-sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
+
 <!-- NAV FAB -->
 <div id="nav-fab">
   <div class="nav-fab-summary" id="navFabSummary">
@@ -249,7 +264,8 @@
 <script src="assets/js/navigation-guide.js?v=company-directions-v10"></script>
 <script src="assets/js/route-avatar.js?v=walk-preview-v7"></script>
 <script src="assets/js/cinematic-preview.js?v=cinematic-v11"></script>
-<script src="assets/js/app.js?v=cinematic-v11"></script>
+<script src="assets/js/next-turn-hud.js?v=turn-hud-v1"></script>
+<script src="assets/js/app.js?v=turn-hud-v1"></script>
 <script src="assets/js/ui-wow.js?v=minimal-v5"></script>
 <script src="assets/js/mobile-navigation.js?v=mobile-sheet-v1"></script>
 </body>
