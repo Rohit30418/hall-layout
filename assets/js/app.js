@@ -86,6 +86,7 @@ function closeNavDrawer() {
   document.getElementById('nav-drawer').classList.remove('open');
   document.body.classList.remove('nav-drawer-visible');
   if (window.HallMobileNavigation) window.HallMobileNavigation.onClose();
+  syncNextTurnHud(true);
 }
 
 /* ══════════════════════════════════════════
@@ -1051,6 +1052,62 @@ let walkPreviewAvatar3 = null;
 let walkPreviewLimbs3 = null;
 let walkPreviewLastStatus = '';
 
+// Only a DOM overlay; the next-turn HUD never adds objects to the WebGL scene.
+let nextTurnHudEvents = [];
+let nextTurnHudLastAnnouncement = '';
+let nextTurnHudLastRender = '';
+function syncNextTurnHud(force = false) {
+  const el = document.getElementById('nextTurnHud');
+  if (!el) return;
+  const showing = !!(walkPreviewPath && window.HallNextTurnHud &&
+    document.body.classList.contains('nav-drawer-visible') &&
+    (walkPreviewPlaying || walkPreviewDistance > 0));
+  el.classList.toggle('is-visible', showing);
+  el.setAttribute('aria-hidden', String(!showing));
+  if (!showing) {
+    nextTurnHudLastRender = '';
+    nextTurnHudLastAnnouncement = '';
+    const announce = document.getElementById('nextTurnHudAnnounce');
+    if (announce) announce.textContent = '';
+    return;
+  }
+  const lastStep = navStepsData[navStepsData.length-1];
+  const destination = lastStep?.destinationLabel || document.getElementById('navDrawerTo')?.textContent || 'destination';
+  const scale = (Number.isFinite(routeMetrics.distanceM) && routeMetrics.distanceM>0)
+    ? routeMetrics.distanceM / walkPreviewPath.total : 1;
+  const next = window.HallNextTurnHud.atDistance(
+    walkPreviewPath, nextTurnHudEvents, walkPreviewDistance, scale, destination);
+  if (!next) return;
+  const icons = {left:'fa-arrow-left',right:'fa-arrow-right',uturn:'fa-rotate-left',
+    destination:'fa-location-dot',arrived:'fa-check'};
+  const paused = !walkPreviewPlaying && next.type!=='arrived';
+  const kicker = paused ? 'PREVIEW PAUSED' : next.type==='arrived' ? 'ROUTE COMPLETE' :
+    next.type==='destination' ? 'DESTINATION AHEAD' : 'UPCOMING TURN · PREVIEW';
+  const detail = next.type==='left' || next.type==='right' || next.type==='uturn'
+    ? (navStepsData[currentNavStepIdx]?.sub || next.detail) : next.detail;
+  const output = [next.type,kicker,next.title,next.distanceText,detail].join('|');
+  if(force || nextTurnHudLastRender!==output) {
+    el.dataset.turn = next.type;
+    const icon = document.querySelector('#nextTurnHudIcon i');
+    if (icon) icon.className = 'fa '+(icons[next.type] || 'fa-arrow-up');
+    const fields = [['nextTurnHudKicker',kicker],['nextTurnHudTitle',next.title],
+      ['nextTurnHudDistance',next.distanceText],['nextTurnHudDetail',detail]];
+    fields.forEach(([id,value])=>{
+      const element=document.getElementById(id);
+      if(element && element.textContent!==value)element.textContent=value;
+    });
+    nextTurnHudLastRender=output;
+  }
+  // The countdown updates visually, but the screen reader announces only
+  // a new turn / destination / arrival, never once per metre.
+  const announcementKey = (next.eventKey ?? next.type)+':'+(next.distanceText==='Now'?'now':'');
+  if(announcementKey!==nextTurnHudLastAnnouncement) {
+    nextTurnHudLastAnnouncement=announcementKey;
+    const announce=document.getElementById('nextTurnHudAnnounce');
+    if(announce) announce.textContent=next.announcement;
+  }
+}
+
 // Cinematic camera follows the EXISTING navigation route; it never changes
 // walk zones, waypoints, directions, or the selected destination.
 let cinemaTurns = [];
@@ -1192,6 +1249,7 @@ function syncWalkPreviewUi(force = false) {
       : walkPreviewDistance > 0 ? 'Paused · ' + pct + '%' : 'Route preview';
   if (status && (force || label !== walkPreviewLastStatus)) status.textContent = label;
   walkPreviewLastStatus = label;
+  syncNextTurnHud(force);
 }
 function removeWalkPreviewAvatar3() {
   if (!walkPreviewAvatar3) return;
@@ -1201,6 +1259,9 @@ function removeWalkPreviewAvatar3() {
   walkPreviewLimbs3 = null;
 }
 function clearWalkPreview() {
+  nextTurnHudEvents = [];
+  nextTurnHudLastRender = '';
+  nextTurnHudLastAnnouncement = '';
   resetCinematicState();
   walkPreviewPlaying = false;
   walkPreviewLastTick = null;
@@ -1254,6 +1315,8 @@ function prepareWalkPreview(points) {
   clearWalkPreview();
   if (!window.HallWalkPreview) return;
   walkPreviewPath = window.HallWalkPreview.buildPath(points);
+  nextTurnHudEvents = walkPreviewPath && window.HallNextTurnHud
+    ? window.HallNextTurnHud.buildTurns(walkPreviewPath) : [];
   cinemaTurns = walkPreviewPath && window.HallCinematicPreview
     ? window.HallCinematicPreview.cornerDistances(walkPreviewPath) : [];
   if (currentView === '3d' && walkPreviewPath) createWalkPreviewAvatar3();
@@ -3288,7 +3351,7 @@ function buildDirections(waypoints, fromLabel, toLabel, meta = {}) {
   }
 
   const sideHint = destinationSideHint(pts, meta.toD);
-  steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${sideHint}`, sub: `You've arrived`, landmark: null, pathStartIndex: pts.length - 1, pathEndIndex: pts.length - 1 });
+  steps.push({ type: 'end', icon: 'fa-flag-checkered', iconClass: 'si-end', main: `${toLabel} is ${sideHint}`, sub: `You've arrived`, destinationLabel: destinationPlace, landmark: null, pathStartIndex: pts.length - 1, pathEndIndex: pts.length - 1 });
 
   // An offline guide combines a short approach with the following action,
   // preserving every real turn and original path indices. If the optional
