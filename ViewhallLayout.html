@@ -14,6 +14,14 @@
 <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=mobile-sheet-v1" />
 <link rel="stylesheet" href="assets/css/next-turn-hud.css?v=direction-only-v2" />
 <script>
+  // Hall map behavior — change ONLY this object to switch modes.
+  // false: fit the entire hall and mark the selected stall with a pulsing indicator.
+  // true: use the existing automatic zoom-to-stall behavior.
+  window.HALL_LAYOUT_CONFIG = {
+    zoomToSelectedStall: false
+  };
+</script>
+<script>
   // Only the plain hall-layout URL opens the picker; all query-based deep links load the map directly.
   (function () {
     var landing = /\/ViewhallLayout\.html$/i.test(location.pathname) && !location.search;
@@ -398,7 +406,7 @@
 <script src="assets/js/route-avatar.js?v=walk-preview-v7"></script>
 <script src="assets/js/cinematic-preview.js?v=cinematic-v11"></script>
 <script src="assets/js/next-turn-hud.js?v=direction-only-v2"></script>
-<script src="assets/js/app.js?v=hall-picker-v1"></script>
+<script src="assets/js/app.js?v=fit-screen-mode-v1"></script>
 <script src="assets/js/ui-wow.js?v=minimal-v5"></script>
 <script src="assets/js/mobile-navigation.js?v=mobile-sheet-v1"></script>
 </body>
