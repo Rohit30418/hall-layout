@@ -47,10 +47,11 @@
   }
   html.hall-selection-mode body > :not(#hallLanding):not(script) { display: none !important; }
   html.hall-selection-mode #hallLanding {
-    display: block; min-height: 100vh; padding: 0 24px 56px;
+    display: block; min-height: 100vh; min-height: 100dvh; padding: 28px 24px 50px;
     background: radial-gradient(ellipse at 75% 0%, #e5edff 0, #f5f7fc 36%, #f8f9fc 76%);
   }
   .hall-landing-inner { max-width: 1190px; margin: 0 auto; }
+  .hall-landing-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .hall-landing-topbar {
     display: flex; align-items: center; justify-content: space-between;
     gap: 16px; padding: 26px 0; border-bottom: 1px solid #e0e5ef;
@@ -85,42 +86,26 @@
   .hall-landing-footer { margin-top: 26px; color: #8390a6; font-size: 12px; text-align: center; }
   @media (max-width: 990px) { .hall-landing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 680px) {
-    html.hall-selection-mode #hallLanding { padding: 0 16px 36px; }
-    .hall-landing-topbar { padding: 18px 0; }
-    .hall-landing-topnote { display: none; }
-    .hall-landing-intro { padding: 41px 0 30px; }
-    .hall-landing-intro > p:last-child { font-size: 13px; }
-    .hall-landing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
-    .hall-landing-card { min-height: 154px; padding: 15px; border-radius: 14px; gap: 15px; }
+    html.hall-selection-mode #hallLanding { padding: 14px 12px 36px; }
+    .hall-landing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .hall-landing-card { min-width: 0; min-height: 145px; padding: 14px; border-radius: 14px; gap: 13px; }
     .hall-landing-card-icon { width: 38px; height: 38px; font-size: 15px; }
     .hall-landing-card-title { font-size: 15px; }
     .hall-landing-card-subtitle { font-size: 11px; line-height: 1.4; }
   }
-  @media (max-width: 340px) { .hall-landing-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 340px) {
+    .hall-landing-card { padding: 11px; }
+    .hall-landing-card-title { font-size: 13px; }
+  }
   @media (prefers-reduced-motion: reduce) { .hall-landing-card, .hall-landing-card-arrow { transition: none; } }
 </style>
 </head>
 <body>
 <div id="hallLanding" aria-label="Choose a hall">
-  <div class="hall-landing-inner">
-    <header class="hall-landing-topbar">
-      <div class="hall-landing-brand"><span class="hall-landing-brand-icon"><i class="fa fa-map-location-dot" aria-hidden="true"></i></span><span>Stall<span>Map</span></span></div>
-      <span class="hall-landing-topnote">INTERACTIVE HALL LAYOUT</span>
-    </header>
-    <main>
-      <div class="hall-landing-intro">
-        <p class="hall-landing-eyebrow">Explore the venue</p>
-        <h1>Select your hall<span>.</span></h1>
-        <p>Choose a hall to explore its interactive floor plan, find stalls and view navigation.</p>
-      </div>
-      <div class="hall-landing-grid-heading">
-        <h2>All halls</h2>
-        <span class="hall-landing-count" id="hallLandingCount"></span>
-      </div>
-      <div class="hall-landing-grid" id="hallLandingGrid"></div>
-      <p class="hall-landing-footer">Select any hall to open its layout</p>
-    </main>
-  </div>
+  <main class="hall-landing-inner">
+    <h1 class="hall-landing-sr-only">Choose a hall</h1>
+    <div class="hall-landing-grid" id="hallLandingGrid"></div>
+  </main>
 </div>
 <datalist id="stallList"></datalist>
 
@@ -402,7 +387,6 @@
       text.appendChild(title); text.appendChild(subtitle);
       card.appendChild(top); card.appendChild(text); grid.appendChild(card);
     });
-    document.getElementById('hallLandingCount').textContent = entries.length + ' halls';
   })();
 </script>
 <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
