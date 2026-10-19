@@ -4716,6 +4716,8 @@ document.addEventListener('keydown', e => {
    INIT
 ══════════════════════════════════════════ */
 jq(function () {
+  // The plain URL is a hall-picker landing page: do not boot the map or request data.
+  if (document.documentElement.classList.contains('hall-selection-mode')) return;
   parseURLParams();
   updateQualityUI(currentQuality);
 
