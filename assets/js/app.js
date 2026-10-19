@@ -8,6 +8,13 @@ let searchTargetStallId = '';
 // 'id' means highlight/focus must match backend SeatId/StallId only, not StallNo.
 // This makes deep links like ?HallId=23&StallId=14071407 exact and prevents wrong highlight by stall name.
 let searchTargetMatchMode = 'any';
+
+// One-page configuration is declared in ViewhallLayout.html.
+// false = start with the full hall visible and show an indicator for a selected stall.
+// true  = preserve the original zoom-to-stall behavior.
+function shouldZoomToSelectedStall() {
+  return window.HALL_LAYOUT_CONFIG?.zoomToSelectedStall !== false;
+}
 let allStallData        = [];
 let allUtilData         = [];
 let mapBaseSize         = 2000;
@@ -1696,6 +1703,67 @@ function render2dFrame() {
   allUtilData.forEach(d => drawUtil(d));
   allStallData.forEach(d => { const act = isActive(d); drawStall(d, stallColor(d, act), act); });
   drawRoute2d();
+  drawSelectedStallIndicator2d();
+}
+
+// Always draw the selected stall at a fixed screen-pixel size in fit-to-screen mode,
+// so its location remains obvious even when its booth is tiny in a large hall.
+function drawSelectedStallIndicator2d() {
+  if (shouldZoomToSelectedStall() || !searchTargetStallId) return;
+  const stall = allStallData.find(d => isActive(d));
+  if (!stall) return;
+  const center = getStallShapeCenter(stall);
+  const p = w2s(center.x, center.y);
+  if (!Number.isFinite(p.x) || !Number.isFinite(p.y) ||
+      p.x < 0 || p.y < 0 || p.x > canvas2d.width || p.y > canvas2d.height) return;
+
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pulse = reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(performance.now() / 380));
+  const label = 'STALL ' + String(stall.StallNo || 'SELECTED').trim();
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '800 12px Inter, Arial, sans-serif';
+
+  // Screen-space halo: independent of map zoom, with a high-contrast center.
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 15 + pulse * 7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(37,99,235,' + (0.10 + pulse * 0.12) + ')';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#2563eb';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+
+  // Place the label above the booth; fall below if it would clip the canvas.
+  const width = Math.min(canvas2d.width - 16, Math.ceil(ctx.measureText(label).width) + 26);
+  if (width > 0) {
+    const height = 30;
+    const below = p.y < 68;
+    const y = below ? Math.min(canvas2d.height - height - 8, p.y + 34) : p.y - 58;
+    const x = Math.max(8, Math.min(canvas2d.width - width - 8, p.x - width / 2));
+    const tipX = Math.max(x + 8, Math.min(x + width - 8, p.x));
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y + (below ? 9 : -9));
+    ctx.lineTo(tipX, below ? y : y + height);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowColor = 'rgba(15,23,42,.22)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = '#1d4ed8';
+    drawRoundedRect(ctx, x, y, width, height, 9);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, x + width / 2, y + height / 2, Math.max(0, width - 14));
+  }
+  ctx.restore();
 }
 
 function draw2d() {
@@ -1911,9 +1979,15 @@ function focusStall2d(sid) {
   const d = findStallForTarget(sid);
   if (!d) return false;
   setActiveStallTarget(getStallPrimaryKey(d), getStallPrimaryMode(d));
-  cam2.x = d.dLeft + d.dWidth / 2;
-  cam2.y = d.dTop  + d.dHeight / 2;
-  cam2.zoom = window.innerWidth <= 768 ? 2.8 : 4;
+  if (shouldZoomToSelectedStall()) {
+    // Original close-up behavior, preserved when the config is enabled.
+    cam2.x = d.dLeft + d.dWidth / 2;
+    cam2.y = d.dTop  + d.dHeight / 2;
+    cam2.zoom = window.innerWidth <= 768 ? 2.8 : 4;
+  } else {
+    // Keep the complete hall visible; drawSelectedStallIndicator2d marks this booth.
+    fitCamera2d();
+  }
   if (currentView === '2d' && typeof render2dFrame === 'function') render2dFrame();
   return true;
 }
@@ -2564,6 +2638,10 @@ function focusStall3d(stallNo) {
     if (ok) tg = g;
   });
   if (!tg) return;
+  if (!shouldZoomToSelectedStall()) {
+    fitCamera3d();
+    return;
+  }
   const pos = tg.position;
   controls3.target.set(pos.x, 0, pos.z);
   const distance = window.innerWidth <= 768 ? 500 : 350;
@@ -4486,9 +4564,12 @@ function buildAll3D() {
   const ctr = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
   mapBaseSize = Math.max(sz.x, sz.z) || 2000;
   setTimeout(() => {
-    if (activeStallPos3) {
+    if (activeStallPos3 && shouldZoomToSelectedStall()) {
       controls3.target.copy(activeStallPos3);
       camera3.position.set(activeStallPos3.x, 800, activeStallPos3.z + 800 + (innerWidth <= 768 ? 300 : 0));
+    } else if (activeStallPos3 && !shouldZoomToSelectedStall()) {
+      fitCamera3d();
+      return;
     } else if (stallsGroup3.children.length) {
       controls3.target.copy(ctr);
       camera3.position.set(ctr.x, mapBaseSize * 1.2, ctr.z + mapBaseSize * .8);
@@ -4744,6 +4825,11 @@ jq(function () {
   window.addEventListener('resize', () => {
     resize2d();
     resize3d();
+    // Preserve the full-hall fit on mobile rotation and browser resize.
+    if (!shouldZoomToSelectedStall() && allStallData.length) {
+      if (currentView === '3d') fitCamera3d();
+      else fitCamera2d();
+    }
   });
 
   init3D();
